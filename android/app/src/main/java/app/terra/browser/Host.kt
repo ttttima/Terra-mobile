@@ -156,7 +156,6 @@ class Host(private val activity: MainActivity) {
                 data.getString("url"),
                 data.optBoolean("private"),
                 data.optBoolean("desktop"),
-                data.optInt("textZoom", 100),
             )
             "tab.close" -> tabs.close(data.getInt("id"))
             "tab.show" -> tabs.show(if (data.isNull("id")) null else data.getInt("id"))
@@ -169,10 +168,8 @@ class Host(private val activity: MainActivity) {
                 else it.view.findNext(data.optBoolean("forward", true))
             }
             "tab.findStop" -> tabs.get(data)?.view?.clearMatches()
-            "tab.textZoom" -> tabs.get(data)?.view?.settings?.textZoom = data.getInt("percent")
             "tab.desktop" -> tabs.get(data)?.let { tabs.setDesktop(it, data.getBoolean("on")) }
             "tab.mute" -> tabs.get(data)?.let { tabs.setMuted(it, data.getBoolean("on")) }
-            "tab.print" -> tabs.get(data)?.let { tabs.print(it, data.optString("title")) }
             "tab.fill" -> tabs.get(data)?.let {
                 tabs.fill(it, data.getString("loginId"), data.getString("origin"))
             }

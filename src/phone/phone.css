@@ -23,6 +23,9 @@
   /* The web page fills the width edge to edge: square corners. */
   --radius-page: 0px;
   --text-md: 14px;
+  /* How things slide on the phone: fast out of the gate, settling softly,
+     like Android's own panels. Always with --duration. */
+  --ease: cubic-bezier(0.2, 0, 0, 1);
   /* Dims the page under drawers and sheets. */
   --scrim: rgba(0, 0, 0, 0.4);
 
@@ -56,6 +59,17 @@ body {
 
 body {
   display: block;
+}
+
+/* Taps answer at once: no waiting to see whether it was a double tap. */
+button,
+input,
+select,
+a,
+.tab,
+.list-row,
+.suggest-item {
+  touch-action: manipulation;
 }
 
 /* Nothing on a phone hovers: buttons answer to being pressed instead. */
@@ -445,12 +459,17 @@ body.smooth-dividers #notice-bar {
   background: var(--scrim);
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--duration);
+  transition: opacity var(--duration) var(--ease);
 }
 
 body.scrim #scrim {
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Follows the drawer while a finger slides it. */
+#scrim.dragging {
+  transition: none;
 }
 
 #sidebar,
@@ -467,7 +486,8 @@ body.glass #sidebar {
   background: var(--panel);
   box-shadow: var(--shadow);
   transform: translateX(calc(-100% - var(--space-4)));
-  transition: transform var(--duration);
+  transition: transform var(--duration) var(--ease);
+  will-change: transform;
   touch-action: pan-y;
 }
 
@@ -505,7 +525,7 @@ body.smooth-dividers #sidebar .bar {
 }
 
 .tab.shifted {
-  transition: transform var(--duration);
+  transition: transform var(--duration) var(--ease);
 }
 
 #tabs {
@@ -559,7 +579,8 @@ body.smooth-dividers #sidebar .bar {
   background: var(--panel);
   box-shadow: var(--shadow);
   transform: translateY(calc(100% + var(--space-8)));
-  transition: transform var(--duration);
+  transition: transform var(--duration) var(--ease);
+  will-change: transform;
 }
 
 .sheet.open {
@@ -635,22 +656,6 @@ body.smooth-dividers #sidebar .bar {
 
 .sheet-icons .icon-button.checked {
   color: var(--accent);
-}
-
-.sheet-stepper {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.sheet-stepper .icon-button {
-  width: var(--control);
-  height: var(--control);
-}
-
-.sheet-stepper .sheet-detail {
-  min-width: var(--control-lg);
-  text-align: center;
 }
 
 .sheet-row:disabled .icon,

@@ -53,7 +53,7 @@ installs over the old version and keeps your tabs, bookmarks and passwords.
   when you sign in; import them from a CSV
 - **History and Downloads** pages: search, reopen and remove visits; open,
   retry and remove downloads
-- **Everyday tools**: find on page, share, print or save as PDF, text size,
+- **Everyday tools**: find on page, share,
   desktop site, and menus when you hold a link or picture
 - **Ad and tracker blocking**, which you can turn off for a single site
 - **Sites ask first** before using your camera, microphone or location

@@ -9,8 +9,6 @@ import android.graphics.Color
 import android.net.Uri
 import android.net.http.SslError
 import android.os.Message
-import android.print.PrintAttributes
-import android.print.PrintManager
 import android.util.Base64
 import android.view.ContextThemeWrapper
 import android.view.HapticFeedbackConstants
@@ -50,6 +48,8 @@ class Tab(val id: Int, val view: WebView, val private: Boolean) {
     var muted = false
     /** Frames playing sound, and every frame's line back to it. */
     val audibleFrames = mutableSetOf<String>()
+    /** Its page runs (timers, animations): when shown, or while it plays sound. */
+    var running = true
     val frames = mutableSetOf<JavaScriptReplyProxy>()
 }
 
@@ -189,13 +189,13 @@ class Tabs(private val activity: MainActivity) {
             CookieManager.getInstance()
         }
 
-    fun load(id: Int, url: String, private: Boolean, desktop: Boolean, textZoom: Int) {
+    fun load(id: Int, url: String, private: Boolean, desktop: Boolean) {
         val tab = tabs[id] ?: create(id, private)
-        tab.view.settings.textZoom = textZoom
         if (desktop != tab.desktop) setDesktop(tab, desktop, reload = false)
         tab.failedUrl = null
         tab.pageUrl = url
         tab.view.loadUrl(url)
+        updateRunning(tab)
         if (shown == tab) tab.view.requestFocus()
     }
 
@@ -215,16 +215,35 @@ class Tabs(private val activity: MainActivity) {
 
     fun pauseAll() = tabs.values.forEach { it.view.onPause() }
 
-    fun resumeAll() = tabs.values.forEach { it.view.onResume() }
+    fun resumeAll() = tabs.values.forEach { if (it.running) it.view.onResume() }
+
+    /**
+     * Hidden pages stop their timers and animations (unless they play
+     * sound), so the shown page and the UI get the phone to themselves; the
+     * shown page also draws ahead off screen, so scrolling stays smooth.
+     */
+    private fun updateRunning(tab: Tab) {
+        val run = tab == shown || tab.audibleFrames.isNotEmpty()
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.OFF_SCREEN_PRERASTER)) {
+            WebSettingsCompat.setOffscreenPreRaster(tab.view.settings, tab == shown)
+        }
+        if (run == tab.running) return
+        tab.running = run
+        if (!activity.resumed) return
+        if (run) tab.view.onResume() else tab.view.onPause()
+    }
 
     /** Shows one tab's page (or none: new tab page, settings). */
     fun show(id: Int?) {
         val next = id?.let { tabs[it] }
         if (next != shown) {
+            val previous = shown
             val hadFocus = shown?.view?.hasFocus() == true
             shown?.view?.visibility = View.GONE
             shown = next
             next?.view?.visibility = View.VISIBLE
+            previous?.let { updateRunning(it) }
+            next?.let { updateRunning(it) }
             if (hadFocus) activity.hideKeyboard()
         }
         updatePagesVisibility()
@@ -264,15 +283,6 @@ class Tabs(private val activity: MainActivity) {
             } catch (_: Exception) {
             }
         }
-    }
-
-    fun print(tab: Tab, title: String) {
-        val name = title.ifBlank { "Terra" }
-        activity.getSystemService(PrintManager::class.java)?.print(
-            name,
-            tab.view.createPrintDocumentAdapter(name),
-            PrintAttributes.Builder().build(),
-        )
     }
 
     /** "Fill in" in the question bar: the saved login goes into the page. */
@@ -336,6 +346,7 @@ class Tabs(private val activity: MainActivity) {
                 if (message.optBoolean("on")) tab.audibleFrames.add(frame) else tab.audibleFrames.remove(frame)
                 val now = tab.audibleFrames.isNotEmpty()
                 if (now != before) host.tabEvent(tab.id, "audible", JSONObject().put("on", now))
+                if (now != before) updateRunning(tab)
             }
             "loginForm" -> if (isMainFrame && origin.startsWith("http")) {
                 host.tabEvent(tab.id, "loginForm", JSONObject().put("origin", origin))
@@ -498,6 +509,7 @@ class Tabs(private val activity: MainActivity) {
             tab.pageUrl = url
             tab.audibleFrames.clear()
             tab.frames.clear()
+            updateRunning(tab)
             if (tab.failedUrl == null) host.tabEvent(tab.id, "started", state(tab, url).put("loading", true))
         }
 

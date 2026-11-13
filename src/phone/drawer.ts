@@ -57,18 +57,27 @@ $('#open-settings').addEventListener('click', () => {
   window.browser.setSettingsOpen(true);
 });
 
-// Swipe the drawer back to the left to close it.
+// Swipe the drawer back to the left to close it: it follows the finger (the
+// dimmed page lightens with it), and closes past a quarter of its width or
+// on a quick flick.
 {
+  const scrim = $<HTMLElement>('#scrim');
   let startX = 0;
   let startY = 0;
   let sliding = false;
   let tracking = false;
+  /** The last moves, for the speed when the finger lets go. */
+  let lastX = 0;
+  let lastTime = 0;
+  let speed = 0;
   drawer.addEventListener('pointerdown', (event) => {
     if (event.pointerType === 'mouse') return;
     tracking = true;
     sliding = false;
-    startX = event.clientX;
+    startX = lastX = event.clientX;
     startY = event.clientY;
+    lastTime = event.timeStamp;
+    speed = 0;
   });
   drawer.addEventListener('pointermove', (event) => {
     if (!tracking) return;
@@ -79,11 +88,18 @@ $('#open-settings').addEventListener('click', () => {
       if (dx < -12 && Math.abs(dx) > Math.abs(dy) * 1.5 && !tabDrag) {
         sliding = true;
         drawer.classList.add('dragging');
+        scrim.classList.add('dragging');
         drawer.setPointerCapture(event.pointerId);
       }
       return;
     }
-    drawer.style.transform = `translateX(${Math.min(0, dx)}px)`;
+    const time = event.timeStamp - lastTime;
+    if (time > 0) speed = (event.clientX - lastX) / time;
+    lastX = event.clientX;
+    lastTime = event.timeStamp;
+    const offset = Math.min(0, dx);
+    drawer.style.transform = `translateX(${offset}px)`;
+    scrim.style.opacity = String(1 + offset / drawer.offsetWidth);
   });
   const end = (event: PointerEvent) => {
     if (!tracking) return;
@@ -91,9 +107,13 @@ $('#open-settings').addEventListener('click', () => {
     if (!sliding) return;
     sliding = false;
     drawer.classList.remove('dragging');
+    scrim.classList.remove('dragging');
     const dx = event.clientX - startX;
     drawer.style.transform = '';
-    if (dx < -drawer.offsetWidth / 4) closeDrawer();
+    scrim.style.opacity = '';
+    // A flick: faster than half a pixel per millisecond, to the left.
+    const flick = speed < -0.5 && event.timeStamp - lastTime < 100;
+    if (dx < -drawer.offsetWidth / 4 || flick) closeDrawer();
   };
   drawer.addEventListener('pointerup', end);
   drawer.addEventListener('pointercancel', end);

@@ -344,8 +344,8 @@ export function initSites(notify: () => void) {
     }
     sites[origin] = {
       permissions,
-      zoom:
-        typeof raw.zoom === 'number' ? Math.max(-5, Math.min(5, raw.zoom)) : 0,
+      // No text size on the phone: an old saved one is dropped.
+      zoom: 0,
       allowAds: raw.allowAds === true,
       neverSavePasswords: raw.neverSavePasswords === true,
     };
@@ -374,14 +374,6 @@ export function setPermission(
 ) {
   if (!origin) return;
   site(origin).permissions[name] = decision;
-  siteChanged(origin);
-}
-
-export const getZoom = (origin: string) => sites[origin]?.zoom ?? 0;
-
-export function setZoom(origin: string, zoom: number) {
-  if (!origin) return;
-  site(origin).zoom = Math.max(-5, Math.min(5, zoom));
   siteChanged(origin);
 }
 

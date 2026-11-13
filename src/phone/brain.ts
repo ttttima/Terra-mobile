@@ -259,8 +259,6 @@ interface Tab {
   canGoForward: boolean;
   /** "Desktop site": asks websites for their computer layout. */
   desktop: boolean;
-  /** Text size, as a zoom level (1.2 ^ level). */
-  zoom: number;
   /** The tab a link or popup opened it from: Back returns there. */
   openerId: number | null;
   lastUsed: number;
@@ -350,7 +348,7 @@ function sendState() {
     canGoBack: tab.canGoBack,
     canGoForward: tab.canGoForward,
     loading: tab.loading,
-    zoom: Math.round(1.2 ** tab.zoom * 100),
+    zoom: 100,
     security: securityOf(url),
     bookmarked: data.isBookmarked(url),
     isPrivate: tab.isPrivate,
@@ -390,7 +388,6 @@ function load(tab: Tab, url: string) {
     url,
     private: tab.isPrivate,
     desktop: tab.desktop,
-    textZoom: Math.round(1.2 ** tab.zoom * 100),
   });
 }
 
@@ -429,7 +426,6 @@ function createTab(
     canGoBack: false,
     canGoForward: false,
     desktop: false,
-    zoom: 0,
     openerId: options.openerId ?? null,
     lastUsed: Date.now(),
   };
@@ -445,8 +441,6 @@ function createTab(
     tabs.push(tab);
   }
   if (url && !tab.lazyUrl && !tab.live) {
-    const origin = data.originOf(url);
-    if (!tab.isPrivate && origin) tab.zoom = data.getZoom(origin);
     load(tab, url);
   }
   if (activate) activateTab(tab.id);
@@ -454,12 +448,15 @@ function createTab(
   return tab;
 }
 
-/** Puts the least recently used pages to sleep so the phone keeps up. */
-function sleepOldTabs() {
+/**
+ * Puts the least recently used pages to sleep so the phone keeps up: all
+ * but the newest `keep` (none when Android is short of memory).
+ */
+function sleepOldTabs(keep = MAX_LIVE_TABS) {
   const awake = tabs
     .filter((t) => t.live && t.id !== activeTabId && !t.audible)
     .sort((a, b) => b.lastUsed - a.lastUsed);
-  for (const tab of awake.slice(MAX_LIVE_TABS)) {
+  for (const tab of awake.slice(keep)) {
     tab.lazyUrl = shownUrl(tab) || null;
     tab.live = false;
     tab.loading = false;
@@ -664,31 +661,6 @@ export function systemBack() {
   post('app.minimize');
 }
 
-/** Text size for the page, remembered for its site. */
-function changeZoom(delta: number | null) {
-  const tab = activeTab();
-  if (!tab || tab.isNewTab) return;
-  tab.zoom = Math.max(-5, Math.min(5, delta === null ? 0 : tab.zoom + delta));
-  if (tab.live) {
-    post('tab.textZoom', {
-      id: tab.id,
-      percent: Math.round(1.2 ** tab.zoom * 100),
-    });
-  }
-  if (!tab.isPrivate) data.setZoom(data.originOf(shownUrl(tab)), tab.zoom);
-  sendState();
-}
-
-function applySiteZoom(tab: Tab, url: string) {
-  const origin = data.originOf(url);
-  if (!origin || tab.isPrivate) return;
-  const level = data.getZoom(origin);
-  if (level === tab.zoom) return;
-  tab.zoom = level;
-  post('tab.textZoom', { id: tab.id, percent: Math.round(1.2 ** level * 100) });
-  if (tab.id === activeTabId) sendState();
-}
-
 function toggleDesktop() {
   const tab = activeTab();
   if (!tab || tab.isNewTab) return;
@@ -764,18 +736,16 @@ export function showPanelPage(page: PanelPage) {
 /** One line in a menu; shown by the UI as a sheet from the bottom. */
 export interface MenuItem {
   id: number;
-  kind: 'normal' | 'checkbox' | 'separator' | 'header' | 'icons' | 'stepper';
+  kind: 'normal' | 'checkbox' | 'separator' | 'header' | 'icons';
   label?: string;
   /** Icon name (see ui-sheet.ts). */
   icon?: string;
   enabled?: boolean;
   checked?: boolean;
-  /** Text on the right (a stepper's value). */
-  detail?: string;
   /** Stays open when chosen (the menu is sent again, updated). */
   keepOpen?: boolean;
   submenu?: MenuItem[];
-  /** Icons row and stepper: their buttons. */
+  /** Icons row: its buttons. */
   items?: MenuItem[];
 }
 
@@ -785,7 +755,6 @@ export interface MenuTemplate {
   icon?: string;
   enabled?: boolean;
   checked?: boolean;
-  detail?: string;
   keepOpen?: boolean;
   submenu?: MenuTemplate[];
   items?: MenuTemplate[];
@@ -808,7 +777,6 @@ function toItems(template: MenuTemplate[]): MenuItem[] {
       icon: entry.icon,
       enabled: entry.enabled !== false,
       checked: entry.checked,
-      detail: entry.detail,
       keepOpen: entry.keepOpen,
       submenu: entry.submenu ? toItems(entry.submenu) : undefined,
       items: entry.items ? toItems(entry.items) : undefined,
@@ -847,7 +815,6 @@ function showMainMenu() {
     const tab = activeTab();
     const onPage = pageShouldShow(tab);
     const url = tab ? shownUrl(tab) : '';
-    const percent = Math.round(1.2 ** (tab?.zoom ?? 0) * 100);
     return [
       {
         kind: 'icons',
@@ -912,41 +879,11 @@ function showMainMenu() {
         click: openFind,
       },
       {
-        kind: 'stepper',
-        label: 'Text size',
-        icon: 'text',
-        detail: `${percent}%`,
-        enabled: onPage,
-        items: [
-          {
-            label: 'Smaller text',
-            icon: 'minus',
-            enabled: onPage && (tab?.zoom ?? 0) > -5,
-            keepOpen: true,
-            click: () => changeZoom(-0.5),
-          },
-          {
-            label: 'Bigger text',
-            icon: 'plus',
-            enabled: onPage && (tab?.zoom ?? 0) < 5,
-            keepOpen: true,
-            click: () => changeZoom(0.5),
-          },
-        ],
-      },
-      {
         label: 'Desktop site',
         icon: 'monitor',
         checked: !!tab?.desktop,
         enabled: !!tab && !tab.isNewTab,
         click: toggleDesktop,
-      },
-      {
-        label: 'Print…',
-        icon: 'printer',
-        enabled: onPage,
-        click: () =>
-          tab && post('tab.print', { id: tab.id, title: tabTitle(tab) }),
       },
       { kind: 'separator' },
       {
@@ -1488,7 +1425,6 @@ onHost<TabEvent>('tab', (event) => {
       break;
     case 'visited':
       remember(tab, tab.url);
-      applySiteZoom(tab, tab.url);
       break;
     case 'finished':
       tab.progress = 100;
@@ -1749,6 +1685,11 @@ onHost<{ urls?: string[]; text?: string }>('open', ({ urls, text }) => {
   }
 });
 
+onHost('memory', () => {
+  sleepOldTabs(0);
+  sendTabs();
+});
+
 onHost<{ state: string }>('lifecycle', ({ state }) => {
   if (state === 'pause') {
     persistSession();
@@ -1857,7 +1798,6 @@ export const commands: Record<string, (...args: never[]) => unknown> = {
     if (key === 'neverSavePasswords') {
       data.setNeverSavePasswords(origin, value === true);
     }
-    if (key === 'zoom') data.setZoom(origin, Number(value) || 0);
     sendConfig();
   },
   'terra:update-install': () => {
@@ -1874,7 +1814,6 @@ export const commands: Record<string, (...args: never[]) => unknown> = {
     menuActions.clear();
     menuBuilder = null;
   },
-  'terra:zoom-reset': () => changeZoom(null),
   'terra:open-links': (links: string[]) => {
     setSettingsOpen(false);
     for (const link of Array.isArray(links) ? links.slice(0, 20) : []) {

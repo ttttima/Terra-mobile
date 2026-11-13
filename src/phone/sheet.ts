@@ -53,25 +53,6 @@ function row(item: MenuItem): HTMLElement {
       );
       return icons;
     }
-    case 'stepper': {
-      const line = document.createElement('div');
-      line.className = 'sheet-row';
-      line.innerHTML = phoneIcon(item.icon ?? '');
-      const label = document.createElement('span');
-      label.className = 'sheet-label';
-      label.textContent = item.label ?? '';
-      const controls = document.createElement('span');
-      controls.className = 'sheet-stepper';
-      const [less, more] = item.items ?? [];
-      const value = document.createElement('span');
-      value.className = 'sheet-detail';
-      value.textContent = item.detail ?? '';
-      if (less) controls.append(button(less, 'icon-button'));
-      controls.append(value);
-      if (more) controls.append(button(more, 'icon-button'));
-      line.append(label, controls);
-      return line;
-    }
     default: {
       const line = document.createElement('button');
       line.className = 'sheet-row';

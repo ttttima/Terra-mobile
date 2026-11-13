@@ -97,6 +97,8 @@ class MainActivity : Activity() {
             setSupportZoom(false)
             mediaPlaybackRequiresUserGesture = true
         }
+        // Terra's own UI stays responsive while pages are busy.
+        ui.setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false)
         ui.isVerticalScrollBarEnabled = false
         ui.overScrollMode = View.OVER_SCROLL_NEVER
         ui.addJavascriptInterface(host, "TerraHost")
@@ -479,6 +481,15 @@ class MainActivity : Activity() {
     }
 
     // ------------------------------------------------------------ lifecycle
+
+    /**
+     * Android is short of memory: background tabs go to sleep (they reload
+     * when opened) before the system has to close Terra.
+     */
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (level >= TRIM_MEMORY_BACKGROUND) host.send("memory", null)
+    }
 
     override fun onResume() {
         super.onResume()
