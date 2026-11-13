@@ -158,7 +158,11 @@ class Host(private val activity: MainActivity) {
                 data.optBoolean("desktop"),
             )
             "tab.close" -> tabs.close(data.getInt("id"))
-            "tab.show" -> tabs.show(if (data.isNull("id")) null else data.getInt("id"))
+            "tab.show" -> tabs.show(
+                if (data.isNull("id")) null else data.getInt("id"),
+                data.optInt("from"),
+            )
+            "haptic" -> activity.haptic(data.optString("kind"))
             "tab.back" -> tabs.get(data)?.view?.goBack()
             "tab.forward" -> tabs.get(data)?.view?.goForward()
             "tab.reload" -> tabs.get(data)?.let { tabs.reload(it) }

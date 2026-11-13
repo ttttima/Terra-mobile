@@ -11,6 +11,7 @@ same UI and design laid out for a phone, on top of a native Kotlin shell.
     `window.terra`); `host.ts` talks to the native app.
   - `layout.ts`: the native pages sit under this page, which is see-through
     where `#page-area` is; it reports that rectangle and the safe areas.
+  - `motion.ts`: how everything moves (springs, see design rule 8).
   - `drawer.ts` (tabs), `toolbar.ts`, `sheet.ts` (menus from below),
     `settings.ts`, `data.ts` (the saved files), `icons.ts`.
 - Shared with the desktop, kept identical to its files: `src/shared.ts`,
@@ -111,8 +112,8 @@ exactly 8px above and below them.
   `--border`, so the "Section dividers" setting can hide them. Hidden lines
   stay 1px wide and transparent so nothing shifts. New dividers must also
   get a rule in the "smooth dividers" section of `index.css`.
-- One transition duration, `--duration` (150ms), on color/background/border/
-  transform only (the drawer and sheets slide with it).
+- Colors change in one duration, `--duration` (150ms). Places and sizes
+  move on springs (rule 8), never on a fixed-time slide.
 - Liquid glass (`body.glass`, Appearance) only changes the background: the
   window's own background becomes frosted glass with soft light
   (`--glass*` tokens). Its three colors (`--glass-1/2/3`) come from the
@@ -125,3 +126,33 @@ exactly 8px above and below them.
   plain CSS. Draw them in `ui-backdrop.ts`, which computes them in float and
   dithers before rounding to 8 bits; the CSS versions stay only as the
   fallback without WebGL. Don't add noise overlays on top.
+
+### 8. Motion
+
+Everything that moves follows `src/phone/motion.ts`; keep new motion on it.
+
+- Anything a finger can drag (the drawer, a menu, a tab row, the address
+  pill) is a `Spring`: it follows the finger 1:1 from where it was
+  grabbed, keeps the finger's speed when let go (`Tracker`), lands where
+  the throw was heading (`project`), gives like a rubber band past its end
+  (`rubberband`), and can be caught again mid-flight. Never a CSS
+  transition for these.
+- Two spring shapes only: `SMOOTH` (settles without overshoot) for
+  everything, `LIVELY` (a small bounce) only after a flick or a drop.
+- Things nobody drags use the same springs as CSS easings (`--spring`,
+  `--spring-bouncy` with their `-time`), through `play()`, `glide()`
+  (rows finding new places) or `@starting-style` (things that appear).
+  Only `transform`, `translate`, `scale`, `opacity` and `clip-path` move.
+- Things arrive from where they belong and leave at once: nothing waits
+  for an animation to finish, and input is never blocked by one.
+- Buttons answer a press right away (`scale`, the `--press` amount).
+- The page under the drawer or a menu dims with it (`dim()` in
+  `layout.ts`), not on its own timer.
+- Web pages are native views: swiping through tabs pushes them sideways in
+  `Tabs.kt` with the same spring as an Android interpolator.
+- A sideways drag only reaches the UI where `touch-action` says so, on the
+  element and inside any scroll area around it (see the drawer in
+  `phone.css`); otherwise the browser cuts the gesture off.
+- `haptic()` gives a small tap at real moments only: a tab coming loose,
+  passing a slot, landing, a bookmark made.
+- "Remove animations" in Android's settings turns all of it off.

@@ -367,6 +367,8 @@ function pageShouldShow(tab: Tab | null): tab is Tab {
 }
 
 let shownPage: number | null | undefined;
+/** Swiping to the next (1) or previous (-1) tab: its page slides in from there. */
+let pageFrom = 0;
 
 function updatePage() {
   const tab = activeTab();
@@ -374,7 +376,7 @@ function updatePage() {
   sendToUi('terra:page-visible', id !== null);
   if (id === shownPage) return;
   shownPage = id;
-  post('tab.show', { id });
+  post('tab.show', { id, from: pageFrom });
 }
 
 /** Loads an address in a tab, making its web page if it has none yet. */
@@ -586,7 +588,9 @@ function scrollTabs(step: number) {
   }
   const next = tabs[index + step];
   if (!next) return;
+  pageFrom = step;
   activateTab(next.id);
+  pageFrom = 0;
   if (current.id === scrolledNewTabId) {
     scrolledNewTabId = null;
     if (current.isNewTab) closeTab(current.id);

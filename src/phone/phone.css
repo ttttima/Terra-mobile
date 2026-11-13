@@ -23,9 +23,13 @@
   /* The web page fills the width edge to edge: square corners. */
   --radius-page: 0px;
   --text-md: 14px;
-  /* How things slide on the phone: fast out of the gate, settling softly,
-     like Android's own panels. Always with --duration. */
+  /* Motion (see motion.ts): things move on springs. motion.ts fills these
+     in with real spring curves; --ease stands in on an old WebView. */
   --ease: cubic-bezier(0.2, 0, 0, 1);
+  --spring: var(--ease);
+  --spring-time: 300ms;
+  --spring-bouncy: var(--ease);
+  --spring-bouncy-time: 350ms;
   /* Dims the page under drawers and sheets. */
   --scrim: rgba(0, 0, 0, 0.4);
 
@@ -75,14 +79,14 @@ a,
 /* Nothing on a phone hovers: buttons answer to being pressed instead. */
 @media (hover: none) {
   button:hover:not(:disabled),
-  .tab:hover,
+  .tab:not(.active):hover,
   .list-row.clickable:hover,
   .suggest-item:hover {
     background: transparent;
   }
 
   button:active:not(:disabled),
-  .tab:active,
+  .tab:not(.active):active,
   .list-row.clickable:active,
   .suggest-item:active {
     background: var(--hover);
@@ -271,12 +275,17 @@ body.smooth-dividers #toolbar {
   touch-action: pan-y;
   transition:
     background var(--duration),
-    box-shadow var(--duration),
-    transform var(--duration);
+    box-shadow var(--duration);
 }
 
-.address-box.dragging {
-  transition: none;
+/* The field scrolls its own text sideways: not while the bar is being
+   swiped through tabs, only while typing in it. */
+.address-box * {
+  touch-action: pan-y;
+}
+
+body.editing .address-box * {
+  touch-action: manipulation;
 }
 
 .address-box .icon-button {
@@ -459,17 +468,12 @@ body.smooth-dividers #notice-bar {
   background: var(--scrim);
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--duration) var(--ease);
+  will-change: opacity;
 }
 
+/* How dark it is follows the drawer or menu itself (dim() in layout.ts). */
 body.scrim #scrim {
-  opacity: 1;
   pointer-events: auto;
-}
-
-/* Follows the drawer while a finger slides it. */
-#scrim.dragging {
-  transition: none;
 }
 
 #sidebar,
@@ -485,22 +489,22 @@ body.glass #sidebar {
   border-right: 1px solid var(--border);
   background: var(--panel);
   box-shadow: var(--shadow);
+  /* Away. Its place when open or under a finger comes from drawer.ts. */
   transform: translateX(calc(-100% - var(--space-4)));
-  transition: transform var(--duration) var(--ease);
   will-change: transform;
   touch-action: pan-y;
 }
 
-body.drawer-open #sidebar {
-  transform: none;
-}
-
-#sidebar.dragging {
-  transition: none;
-}
-
 body.smooth-dividers #sidebar .bar {
   border-color: transparent;
+}
+
+/* Sideways drags anywhere in the drawer are ours (it slides shut, a tab is
+   swiped away); only up and down scrolls. The list is a scroll area of its
+   own, so it and everything in it must say so too, or the browser takes
+   the drag for itself and the gesture is cut off. */
+#sidebar * {
+  touch-action: pan-y;
 }
 
 /* Tabs: the close button always shows (nothing hovers), and a row can be
@@ -513,22 +517,48 @@ body.smooth-dividers #sidebar .bar {
   visibility: visible;
 }
 
-.tab.swiping {
-  transition: none;
+/* A held tab comes loose: a little bigger, with a shadow, above the rest.
+   Its place under the finger is set by drawer.ts; the others make room. */
+.tab {
+  transition:
+    background var(--duration),
+    box-shadow var(--duration),
+    scale var(--spring-bouncy-time) var(--spring-bouncy);
 }
 
 .tab.lifted {
-  z-index: 1;
-  background: var(--hover);
+  z-index: 2;
+  scale: 1.04;
+  /* Solid, so the rows it passes over don't show through it. */
+  background: linear-gradient(var(--hover), var(--hover)), var(--panel);
   box-shadow: var(--shadow);
-  transition: none;
+}
+
+.tab.lifted.active {
+  background:
+    linear-gradient(var(--accent-soft), var(--accent-soft)), var(--panel);
+}
+
+.tab.settling,
+.tab.swiping {
+  z-index: 1;
 }
 
 .tab.shifted {
-  transition: transform var(--duration) var(--ease);
+  transition:
+    background var(--duration),
+    transform var(--spring-time) var(--spring);
+}
+
+/* A closed tab fades where it stood, out of the others' way. */
+.tab.leaving {
+  position: absolute;
+  margin: 0;
+  pointer-events: none;
 }
 
 #tabs {
+  position: relative;
   overflow-x: hidden;
 }
 
@@ -578,13 +608,9 @@ body.smooth-dividers #sidebar .bar {
   border-radius: var(--radius-lg);
   background: var(--panel);
   box-shadow: var(--shadow);
+  /* Away. Its place when up or under a finger comes from sheet.ts. */
   transform: translateY(calc(100% + var(--space-8)));
-  transition: transform var(--duration) var(--ease);
   will-change: transform;
-}
-
-.sheet.open {
-  transform: none;
 }
 
 .sheet-row {
@@ -815,4 +841,186 @@ body.finding #menu-button {
 .category .row-chevron {
   margin-left: auto;
   color: var(--muted);
+}
+
+/* ============================================================ motion */
+
+/* What a finger drags moves on springs in motion.ts. Here is everything
+   else: how controls answer a press, and how things that appear arrive.
+   Colors still change in --duration; places and sizes use the springs. */
+
+/* A press is felt at once: the button gives under the finger, and springs
+   back when let go. `scale` on its own, so it never fights a transform. */
+button {
+  --press: 0.96;
+  transition:
+    background var(--duration),
+    color var(--duration),
+    border-color var(--duration),
+    opacity var(--duration),
+    scale var(--spring-bouncy-time) var(--spring-bouncy);
+}
+
+button:active:not(:disabled) {
+  scale: var(--press);
+  transition:
+    background var(--duration),
+    color var(--duration),
+    border-color var(--duration),
+    opacity var(--duration),
+    scale 80ms ease-out;
+}
+
+/* Small round targets give more, wide rows barely. */
+.icon-button,
+.tab-close,
+.tab-audio,
+.list-action {
+  --press: 0.88;
+}
+
+.sheet-row,
+.category,
+#new-tab {
+  --press: 0.98;
+}
+
+/* The switch's knob lands with a small overshoot. */
+.switch::after {
+  transition: transform var(--spring-bouncy-time) var(--spring-bouncy);
+}
+
+/* Toolbar buttons that step aside while typing an address come back in. */
+@starting-style {
+  #tabs-button,
+  #menu-button,
+  #site-button,
+  #reload-button,
+  #clear-address {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+/* Loading: the line runs ahead smoothly, fills, then fades. */
+#progress {
+  transition:
+    width 300ms var(--ease),
+    opacity 300ms ease 200ms;
+}
+
+#progress.loading {
+  transition:
+    width 300ms var(--ease),
+    opacity 100ms ease;
+}
+
+/* Things that appear arrive from where they belong: a short rise and a
+   fade. They leave at once, so nothing is ever in the way. */
+#notice-bar,
+#find-bar,
+.address-box,
+.start-inner,
+.bookmarks-pop,
+.color-panel,
+#suggest {
+  transition:
+    opacity var(--duration),
+    translate var(--spring-time) var(--spring),
+    scale var(--spring-time) var(--spring);
+}
+
+.address-box {
+  transition:
+    background var(--duration),
+    box-shadow var(--duration),
+    opacity var(--duration),
+    translate var(--spring-time) var(--spring);
+}
+
+@starting-style {
+  #notice-bar,
+  #find-bar {
+    opacity: 0;
+    translate: 0 var(--space-2);
+  }
+
+  .address-box {
+    opacity: 0;
+    translate: 0 calc(var(--space-2) * -1);
+  }
+
+  #suggest {
+    opacity: 0;
+  }
+
+  /* The new tab page's search box settles in. */
+  .start-inner {
+    opacity: 0;
+    scale: 0.96;
+  }
+
+  /* Pop-outs grow from the button that opened them. */
+  .bookmarks-pop,
+  .color-panel {
+    opacity: 0;
+    scale: 0.94;
+  }
+}
+
+.bookmarks-pop {
+  transform-origin: var(--space-12) top;
+}
+
+/* Settings rise in and fade away; inside, a page comes in from the right
+   and the list comes back from the left, like turning pages. */
+#settings,
+body.smooth-dividers #settings {
+  transition:
+    opacity var(--duration),
+    translate var(--spring-time) var(--spring),
+    display var(--duration) allow-discrete;
+}
+
+#settings[hidden] {
+  opacity: 0;
+}
+
+@starting-style {
+  #settings:not([hidden]) {
+    opacity: 0;
+    translate: 0 var(--space-4);
+  }
+}
+
+#settings[data-nav] .settings-nav,
+#settings[data-nav] .settings-main {
+  transition:
+    opacity var(--duration),
+    translate var(--spring-time) var(--spring);
+}
+
+@starting-style {
+  #settings[data-nav='forward'] .settings-main {
+    opacity: 0;
+    translate: var(--space-8) 0;
+  }
+
+  #settings[data-nav='back'] .settings-nav {
+    opacity: 0;
+    translate: calc(var(--space-8) * -1) 0;
+  }
+}
+
+/* "Remove animations" in Android's settings: everything arrives at once
+   (motion.ts stops its springs too). Colors still fade. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --spring-time: 1ms !important;
+    --spring-bouncy-time: 1ms !important;
+  }
+
+  button:active:not(:disabled) {
+    scale: none;
+  }
 }

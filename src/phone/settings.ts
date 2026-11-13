@@ -41,6 +41,8 @@ function showPanel(page: PanelPage, direct: boolean) {
   cancelColorPanel();
   currentPage = page;
   cameDirect = direct;
+  // From the list, the page comes in from the right.
+  settingsPage.dataset.nav = direct ? '' : 'forward';
   settingsPage.classList.add('show-panel');
   for (const panel of panels) panel.hidden = panel.dataset.panel !== page;
   const active = [...categories].find((b) => b.dataset.category === page);
@@ -57,6 +59,10 @@ function showPanel(page: PanelPage, direct: boolean) {
 
 function showList() {
   cancelColorPanel();
+  // Back from a page, the list returns from the left.
+  settingsPage.dataset.nav = settingsPage.classList.contains('show-panel')
+    ? 'back'
+    : '';
   settingsPage.classList.remove('show-panel');
 }
 
@@ -82,6 +88,7 @@ export function setSettingsVisible(visible: boolean) {
     openLayer('settings', back);
     // From the gear: the list. browser:show-page then opens a page.
     showList();
+    settingsPage.dataset.nav = '';
   }
   settingsPage.hidden = !visible;
   body.classList.toggle('settings-open', visible);

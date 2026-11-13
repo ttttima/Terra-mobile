@@ -52,9 +52,20 @@ export const hasLayer = (name: string) =>
   layers.some((layer) => layer.name === name);
 
 // Tapping the dimmed page closes the drawer or menu on top.
-document
-  .querySelector('#scrim')!
-  .addEventListener('click', () => layers.at(-1)?.close());
+const scrim = document.querySelector<HTMLElement>('#scrim')!;
+scrim.addEventListener('click', () => layers.at(-1)?.close());
+
+/**
+ * How far the drawer or a menu is out (0 to 1): the page under it dims
+ * that much, following it frame by frame instead of fading on its own.
+ */
+const dimmed = new Map<string, number>();
+export function dim(name: string, amount: number) {
+  if (amount > 0.001) dimmed.set(name, Math.min(1, amount));
+  else dimmed.delete(name);
+  const most = Math.max(0, ...dimmed.values());
+  scrim.style.opacity = most ? most.toFixed(3) : '';
+}
 
 /** Android's Back: closes the top layer, or goes back in the browser. */
 window.terra.on('terra:back', () => {

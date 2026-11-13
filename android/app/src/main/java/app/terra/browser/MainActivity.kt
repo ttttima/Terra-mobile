@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -259,6 +260,21 @@ class MainActivity : Activity() {
             getSystemService(InputMethodManager::class.java)
                 ?.showSoftInput(ui, InputMethodManager.SHOW_IMPLICIT)
         }, 60)
+    }
+
+    /**
+     * A small tap from the phone when something in the UI happens (a tab
+     * comes loose, snaps into a slot, a bookmark is made). Android leaves
+     * it out by itself when touch feedback is off in its settings.
+     */
+    fun haptic(kind: String) {
+        root.performHapticFeedback(
+            when (kind) {
+                "lift" -> HapticFeedbackConstants.LONG_PRESS
+                "click" -> HapticFeedbackConstants.CONTEXT_CLICK
+                else -> HapticFeedbackConstants.CLOCK_TICK
+            },
+        )
     }
 
     fun hideKeyboard() {

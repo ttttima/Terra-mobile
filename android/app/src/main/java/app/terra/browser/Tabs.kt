@@ -202,6 +202,8 @@ class Tabs(private val activity: MainActivity) {
     fun close(id: Int) {
         val tab = tabs.remove(id) ?: return
         if (shown == tab) shown = null
+        if (leaving == tab.view) leaving = null
+        tab.view.animate().cancel()
         tab.view.stopLoading()
         tab.view.webChromeClient = null
         activity.pages.removeView(tab.view)
@@ -234,20 +236,71 @@ class Tabs(private val activity: MainActivity) {
     }
 
     /** Shows one tab's page (or none: new tab page, settings). */
-    fun show(id: Int?) {
+    /**
+     * Shows one tab's page (or none: new tab page, settings). `from` is the
+     * side it comes in from when tabs are swiped through: 1 the right, -1
+     * the left, 0 no side (it's simply there).
+     */
+    fun show(id: Int?, from: Int = 0) {
         val next = id?.let { tabs[it] }
         if (next != shown) {
             val previous = shown
             val hadFocus = shown?.view?.hasFocus() == true
-            shown?.view?.visibility = View.GONE
             shown = next
-            next?.view?.visibility = View.VISIBLE
+            change(previous?.view, next?.view, from)
             previous?.let { updateRunning(it) }
             next?.let { updateRunning(it) }
             if (hadFocus) activity.hideKeyboard()
         }
         updatePagesVisibility()
         activity.sampler.soon()
+    }
+
+    /** The page on its way out while the next one slides over it. */
+    private var leaving: WebView? = null
+
+    private fun rest(view: WebView) {
+        view.animate().cancel()
+        view.translationX = 0f
+        view.alpha = 1f
+    }
+
+    /**
+     * One page gives way to another. Swiped through, the pages are
+     * neighbors: the new one comes in from the side the finger pulled it
+     * from and pushes the old one out the other, both solid, on the same
+     * spring as the UI. Otherwise the new page is there at once. Turning
+     * animations off in Android's settings makes it instant too.
+     */
+    private fun change(out: WebView?, into: WebView?, from: Int) {
+        leaving?.let {
+            rest(it)
+            if (it != into) it.visibility = View.GONE
+        }
+        leaving = null
+        into?.let {
+            rest(it)
+            it.visibility = View.VISIBLE
+        }
+        if (out == null || into == null || from == 0 || !activity.resumed) {
+            out?.visibility = View.GONE
+            return
+        }
+        val shift = from * activity.pages.width * SLIDE
+        leaving = out
+        into.bringToFront()
+        into.translationX = shift
+        into.animate().translationX(0f)
+            .setDuration(SLIDE_MS).setInterpolator(SPRING).withLayer().start()
+        out.animate().translationX(-shift)
+            .setDuration(SLIDE_MS).setInterpolator(SPRING).withLayer()
+            .withEndAction {
+                if (leaving == out) {
+                    leaving = null
+                    out.visibility = View.GONE
+                    out.translationX = 0f
+                }
+            }.start()
     }
 
     private fun updatePagesVisibility() {
@@ -670,6 +723,19 @@ class Tabs(private val activity: MainActivity) {
 
     companion object {
         private const val PRIVATE_PROFILE = "terra-private"
+
+        /** How far a page slides between tabs: its whole width. */
+        private const val SLIDE = 1f
+        private const val SLIDE_MS = 420L
+
+        /**
+         * The UI's spring (motion.ts: settles without overshoot) as an
+         * Android interpolator, so pages move like everything else.
+         */
+        private val SPRING = android.view.animation.Interpolator { t ->
+            val x = 9f * t
+            1f - (1f + x) * kotlin.math.exp(-x)
+        }
 
         fun privateSupported() = WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)
 

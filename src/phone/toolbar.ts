@@ -6,6 +6,7 @@ import type { FindResult, Notice, Suggestion } from '../shared';
 import type { PhoneState } from './brain';
 import { phoneIcon } from './icons';
 import { closeLayer, openLayer, showKeyboard } from './layout';
+import { LIVELY, Spring, Tracker, haptic, play, rubberband } from './motion';
 
 const $ = <T extends HTMLElement>(selector: string) =>
   document.querySelector<T>(selector)!;
@@ -47,7 +48,17 @@ function showAddress() {
 
 address.addEventListener('focus', () => {
   address.dataset.justFocused = '1';
+  const was = addressBox.getBoundingClientRect();
   body.classList.add('editing');
+  // The field opens out to the whole bar from where it was.
+  const now = addressBox.getBoundingClientRect();
+  const corner = getComputedStyle(addressBox).borderRadius;
+  play(addressBox, [
+    {
+      clipPath: `inset(0 ${now.right - was.right}px 0 ${was.left - now.left}px round ${corner})`,
+    },
+    { clipPath: `inset(0 0 0 0 round ${corner})` },
+  ]);
   openLayer('editing', () => address.blur());
   showAddress();
   address.select();
@@ -92,8 +103,11 @@ clearButton.addEventListener('click', () => {
 });
 
 reloadButton.addEventListener('click', () => {
-  if (state?.loading) window.browser.stop();
-  else window.browser.reload();
+  if (state?.loading) return window.browser.stop();
+  // The arrow turns once as the page starts again.
+  const arrow = reloadButton.querySelector('.icon-reload');
+  if (arrow) play(arrow, [{ rotate: '0deg' }, { rotate: '360deg' }]);
+  window.browser.reload();
 });
 siteButton.addEventListener('click', () => terra.send('terra:site-menu'));
 $('#menu-button').addEventListener('click', () => {
@@ -101,10 +115,28 @@ $('#menu-button').addEventListener('click', () => {
   terra.send('terra:main-menu');
 });
 
+/** After a swipe to another tab: the side its name comes in from. */
+let nameFrom = 0;
+
 window.browser.onStateChanged((next) => {
+  const wasLoading = !!state?.loading;
   state = next as PhoneState;
   currentUrl = state.url;
   if (document.activeElement !== address) showAddress();
+  if (nameFrom) {
+    play(address, [
+      { opacity: 0, transform: `translateX(${nameFrom * 24}px)` },
+      { opacity: 1, transform: 'none' },
+    ]);
+    nameFrom = 0;
+  }
+  if (state.loading && !wasLoading) {
+    // A new load starts from the left, not back from the full line.
+    progress.style.transition = 'none';
+    progress.style.width = '0';
+    void progress.offsetWidth;
+    progress.style.transition = '';
+  }
   siteButton.dataset.security = state.security;
   siteButton.dataset.private = String(state.isPrivate);
   siteButton.title = state.isPrivate
@@ -137,12 +169,18 @@ window.browser.onSettingsChanged((settings) => {
 });
 
 /**
- * "Swipe through tabs": the address follows the finger sideways; far
- * enough and the next (left) or previous (right) tab opens.
+ * "Swipe through tabs": the address is pulled sideways with the finger,
+ * giving like a rubber band; far enough (or flicked) and the next (left)
+ * or previous (right) tab opens, its name coming in from that side.
  */
 {
+  const pull = new Spring(0, (x) => {
+    addressBox.style.transform = x ? `translateX(${x}px)` : '';
+  });
+  const tracker = new Tracker();
   let startX = 0;
   let startY = 0;
+  let grab = 0;
   let tracking = false;
   let sliding = false;
   addressBox.addEventListener('pointerdown', (event) => {
@@ -155,29 +193,45 @@ window.browser.onSettingsChanged((settings) => {
   });
   addressBox.addEventListener('pointermove', (event) => {
     if (!tracking) return;
-    const dx = event.clientX - startX;
-    const dy = event.clientY - startY;
     if (!sliding) {
+      const dx = event.clientX - startX;
+      const dy = event.clientY - startY;
       if (Math.abs(dy) > 16) tracking = false;
       else if (Math.abs(dx) > 12) {
         sliding = true;
-        addressBox.classList.add('dragging');
+        // From where the finger is now, so it doesn't jump.
+        grab = event.clientX;
+        tracker.reset();
+        tracker.add(event.clientX, event.timeStamp);
         addressBox.setPointerCapture(event.pointerId);
       }
       return;
     }
-    addressBox.style.transform = `translateX(${dx / 2}px)`;
+    tracker.add(event.clientX, event.timeStamp);
+    pull.set(rubberband(event.clientX - grab, addressBox.offsetWidth));
   });
   const end = (event: PointerEvent, cancelled: boolean) => {
     if (!tracking) return;
     tracking = false;
     if (!sliding) return;
     sliding = false;
-    addressBox.classList.remove('dragging');
-    addressBox.style.transform = '';
-    const dx = event.clientX - startX;
-    if (!cancelled && Math.abs(dx) > 64) {
-      terra.send('terra:scroll-tabs', dx < 0 ? 1 : -1);
+    const dx = event.clientX - grab;
+    const velocity = cancelled
+      ? 0
+      : tracker.release(event.clientX, event.timeStamp);
+    const flicked =
+      Math.abs(velocity) > 500 &&
+      Math.abs(dx) > 24 &&
+      Math.sign(velocity) === Math.sign(dx);
+    // The pill only moved part of the finger's way: so does its speed.
+    pull.to(0, { velocity: velocity / 2, ...LIVELY });
+    if (!cancelled && (Math.abs(dx) > 64 || flicked)) {
+      const step = dx < 0 ? 1 : -1;
+      nameFrom = step;
+      haptic('tick');
+      terra.send('terra:scroll-tabs', step);
+      // Nothing there to switch to: no name to bring in.
+      setTimeout(() => (nameFrom = 0), 300);
     }
   };
   addressBox.addEventListener('pointerup', (event) => end(event, false));
