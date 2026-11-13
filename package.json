@@ -1,0 +1,35 @@
+{
+  "name": "terra-mobile",
+  "productName": "Terra",
+  "version": "0.7.3",
+  "private": true,
+  "description": "Terra for Android: a clean, minimal web browser with vertical tabs",
+  "keywords": [],
+  "homepage": "https://github.com/ttttima/Terra-mobile#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ttttima/Terra-mobile.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ttttima/Terra-mobile/issues"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Tima",
+    "email": "283412129+ttttima@users.noreply.github.com"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5179",
+    "apk": "node scripts/build-apk.mjs",
+    "lint": "oxlint && oxfmt --check",
+    "lint:fix": "oxlint --fix && oxfmt --write",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.93.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.7"
+  }
+}

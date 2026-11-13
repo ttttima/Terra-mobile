@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com"
+    />
+    <title>Terra</title>
+    <!-- Terra for Android: the same UI as index.html, laid out for a phone
+         (src/phone). Hidden until phone.css is applied. -->
+    <style>
+      body {
+        visibility: hidden;
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Playwrite+AU+VIC&display=swap"
+    />
+  </head>
+  <body class="starting">
+    <!-- The window's soft gradients, drawn dithered by ui-backdrop.ts. -->
+    <canvas id="backdrop" aria-hidden="true" hidden></canvas>
+    <!-- Background around the web page; the page shows through its hole. -->
+    <div id="chrome-bg" aria-hidden="true"></div>
+
+    <div id="app">
+      <main id="page-area">
+        <!-- Soft glow around the web page for "Smooth dividers". -->
+        <div id="page-glow" aria-hidden="true"></div>
+        <section id="start-page" hidden>
+          <div class="start-inner">
+            <h1 class="start-title">Find whatever. Go wherever.</h1>
+            <form id="start-form" autocomplete="off">
+              <svg
+                class="icon start-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <line x1="16" y1="16" x2="20" y2="20" />
+              </svg>
+              <input
+                id="start-search"
+                type="text"
+                placeholder="Search or enter website address"
+                spellcheck="false"
+                autocapitalize="off"
+                enterkeyhint="go"
+                aria-label="Search or enter website address"
+              />
+            </form>
+            <p id="private-note" class="start-note" hidden>
+              Private tab. Its history, cookies and passwords are forgotten when
+              you close it.
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <!-- Questions: a site asking for a permission, saving a password... -->
+      <div id="notice-bar" role="alertdialog" hidden>
+        <span id="notice-text" class="notice-text"></span>
+        <div id="notice-controls" class="notice-controls"></div>
+      </div>
+
+      <div id="toolbar" class="bar">
+        <span id="progress" aria-hidden="true"></span>
+        <button
+          id="tabs-button"
+          class="icon-button"
+          title="Tabs"
+          aria-label="Tabs"
+        >
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="3" />
+          </svg>
+          <span id="tab-count" class="tab-count">1</span>
+        </button>
+
+        <div id="address-box" class="address-box">
+          <button
+            id="site-button"
+            class="icon-button"
+            title="About this site"
+            aria-label="About this site"
+          >
+            <svg
+              class="icon icon-secure"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <rect x="5" y="11" width="14" height="10" rx="2" />
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+            </svg>
+            <svg
+              class="icon icon-insecure"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M12 4 3 20h18z" />
+              <line x1="12" y1="10" x2="12" y2="14" />
+              <line x1="12" y1="17" x2="12" y2="17" />
+            </svg>
+            <svg class="icon icon-local" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"
+              />
+              <polyline points="14 3 14 9 20 9" />
+            </svg>
+            <svg
+              class="icon icon-private"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M3 3l18 18" />
+              <path
+                d="M10.6 5.1A10 10 0 0 1 12 5c6 0 10 7 10 7a17 17 0 0 1-3.2 4"
+              />
+              <path
+                d="M6.6 6.6C3.9 8.4 2 12 2 12s4 7 10 7a9.7 9.7 0 0 0 5.4-1.6"
+              />
+              <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+            </svg>
+          </button>
+          <input
+            id="address"
+            type="text"
+            placeholder="Search or enter website address"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            enterkeyhint="go"
+            aria-label="Address and search"
+          />
+          <button
+            id="reload-button"
+            class="icon-button"
+            title="Refresh"
+            aria-label="Refresh"
+          >
+            <svg
+              class="icon icon-reload"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5" />
+              <polyline points="20 4 20 8.5 15.5 8.5" />
+            </svg>
+            <svg class="icon icon-stop" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+          <button
+            id="clear-address"
+            class="icon-button"
+            title="Clear"
+            aria-label="Clear"
+          >
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div id="find-bar" class="find-bar" hidden>
+          <input
+            id="find-input"
+            type="text"
+            placeholder="Find on page"
+            spellcheck="false"
+            autocapitalize="off"
+            enterkeyhint="search"
+            aria-label="Find on page"
+          />
+          <span id="find-count" class="find-count"></span>
+          <button
+            id="find-prev"
+            class="icon-button"
+            title="Previous"
+            aria-label="Previous match"
+          >
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <polyline points="6 15 12 9 18 15" />
+            </svg>
+          </button>
+          <button
+            id="find-next"
+            class="icon-button"
+            title="Next"
+            aria-label="Next match"
+          >
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          <button
+            id="find-close"
+            class="icon-button"
+            title="Close"
+            aria-label="Close find"
+          >
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="6" y1="6" x2="18" y2="18" />
+              <line x1="18" y1="6" x2="6" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <button
+          id="menu-button"
+          class="icon-button"
+          title="Menu"
+          aria-label="Menu"
+        >
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="5" r="1" />
+            <circle cx="12" cy="12" r="1" />
+            <circle cx="12" cy="19" r="1" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Address bar suggestions, over the page while typing. -->
+    <div id="suggest" hidden>
+      <ul id="suggest-list" class="suggest-list" role="listbox"></ul>
+    </div>
+
+    <div id="scrim" aria-hidden="true"></div>
+
+    <!-- The tabs: the desktop's sidebar, as a drawer. -->
+    <aside id="sidebar" aria-label="Tabs">
+      <div class="bar">
+        <button id="close-drawer" class="icon-button" title="Close tabs">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="16" rx="2" />
+            <line x1="9" y1="4" x2="9" y2="20" />
+          </svg>
+        </button>
+        <button
+          id="bookmarks-pop-button"
+          class="icon-button"
+          title="Bookmarks"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+        >
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 4h12v16l-6-4-6 4z" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="sidebar-body">
+        <button id="new-tab" class="row" title="New tab">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          <span class="label">New tab</span>
+        </button>
+        <ul id="tabs" role="tablist" aria-label="Tabs"></ul>
+      </div>
+
+      <div class="bar bar-end">
+        <button id="open-downloads" class="icon-button" title="Downloads">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <line x1="12" y1="4" x2="12" y2="15" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="5" y1="20" x2="19" y2="20" />
+          </svg>
+        </button>
+        <button id="open-settings" class="icon-button" title="Settings">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" />
+            <path
+              d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+            />
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <div
+      id="bookmarks-pop"
+      class="bookmarks-pop"
+      role="dialog"
+      aria-label="Bookmarks"
+      hidden
+    ></div>
+
+    <main id="settings" hidden>
+      <nav class="settings-nav" aria-label="Settings categories">
+        <div class="bar">
+          <button
+            id="close-settings"
+            class="icon-button"
+            title="Back to browsing"
+          >
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
+          <span class="bar-title">Settings</span>
+        </div>
+        <div class="sidebar-body">
+          <button class="row category" data-category="appearance">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <line x1="12" y1="3" x2="12" y2="21" />
+              <line x1="12" y1="8" x2="19" y2="8" />
+              <line x1="12" y1="12" x2="21" y2="12" />
+              <line x1="12" y1="16" x2="19" y2="16" />
+            </svg>
+            <span class="label">Appearance</span>
+          </button>
+          <button class="row category" data-category="navigation">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <polygon points="16 8 14 14 8 16 10 10 16 8" />
+            </svg>
+            <span class="label">Navigation</span>
+          </button>
+          <button class="row category" data-category="features">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="4" width="6" height="6" rx="1" />
+              <rect x="14" y="4" width="6" height="6" rx="1" />
+              <rect x="4" y="14" width="6" height="6" rx="1" />
+              <rect x="14" y="14" width="6" height="6" rx="1" />
+            </svg>
+            <span class="label">Features</span>
+          </button>
+          <button class="row category" data-category="privacy">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z" />
+            </svg>
+            <span class="label">Privacy</span>
+          </button>
+          <div class="nav-divider" role="separator"></div>
+          <button class="row category" data-category="history">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <polyline points="12 7 12 12 15 15" />
+            </svg>
+            <span class="label">History</span>
+          </button>
+          <button class="row category" data-category="downloads">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="12" y1="4" x2="12" y2="15" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="5" y1="20" x2="19" y2="20" />
+            </svg>
+            <span class="label">Downloads</span>
+          </button>
+          <button class="row category" data-category="bookmarks">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <polygon
+                points="12 3 14.8 8.8 21 9.6 16.5 14 17.6 20.2 12 17.3 6.4 20.2 7.5 14 3 9.6 9.2 8.8 12 3"
+              />
+            </svg>
+            <span class="label">Bookmarks</span>
+          </button>
+          <button class="row category" data-category="passwords">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="8" cy="15" r="4" />
+              <line x1="11" y1="12" x2="20" y2="3" />
+              <line x1="17" y1="6" x2="20" y2="9" />
+            </svg>
+            <span class="label">Passwords</span>
+          </button>
+        </div>
+        <p id="settings-version" class="settings-version"></p>
+      </nav>
+
+      <div class="settings-main">
+        <div class="bar">
+          <button
+            id="settings-back"
+            class="icon-button"
+            title="Back"
+            aria-label="Back"
+          >
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
+          <span id="settings-title" class="bar-title">Appearance</span>
+        </div>
+        <div class="settings-content">
+          <div class="column">
+            <section class="settings-panel" data-panel="appearance">
+              <div class="settings-card">
+                <div class="setting-row stack">
+                  <span>
+                    <strong>Color mode</strong>
+                    <small>Websites with a dark mode follow this too</small>
+                  </span>
+                  <div
+                    class="theme-picker"
+                    role="radiogroup"
+                    aria-label="Color mode"
+                  >
+                    <label class="theme-option">
+                      <input type="radio" name="theme" value="dark" />
+                      <span class="theme-preview preview-dark"></span>
+                      Dark
+                    </label>
+                    <label class="theme-option">
+                      <input type="radio" name="theme" value="light" />
+                      <span class="theme-preview preview-light"></span>
+                      Light
+                    </label>
+                    <label class="theme-option">
+                      <input type="radio" name="theme" value="oled" />
+                      <span class="theme-preview preview-oled"></span>
+                      OLED dark
+                    </label>
+                  </div>
+                </div>
+                <div class="setting-row stack">
+                  <span>
+                    <strong>Accent color</strong>
+                    <small>Highlights, buttons and switches</small>
+                  </span>
+                  <div class="accent-picker">
+                    <div id="accent-swatches" class="accent-swatches"></div>
+                    <button
+                      id="accent-custom"
+                      class="accent-custom"
+                      title="Pick any color"
+                    >
+                      <span class="accent-custom-preview"></span>
+                      Custom
+                    </button>
+                  </div>
+                </div>
+                <div id="tint-row" class="setting-row stack">
+                  <span>
+                    <strong>Background tint</strong>
+                    <small id="tint-note">Dark and light mode</small>
+                  </span>
+                  <div class="accent-picker">
+                    <div id="tint-swatches" class="accent-swatches"></div>
+                    <button
+                      id="tint-custom"
+                      class="accent-custom"
+                      title="Pick any color"
+                    >
+                      <span class="accent-custom-preview"></span>
+                      Custom
+                    </button>
+                  </div>
+                </div>
+                <label id="glass-row" class="setting-row">
+                  <span>
+                    <strong>Liquid glass</strong>
+                    <small id="glass-note"
+                      >Frosted glass background with soft light</small
+                    >
+                  </span>
+                  <input
+                    id="setting-liquid-glass"
+                    type="checkbox"
+                    class="switch"
+                  />
+                </label>
+                <div id="glass-colors-row" class="setting-row stack" hidden>
+                  <span>
+                    <strong>Glass colors</strong>
+                    <small id="glass-colors-note"
+                      >Where the soft light gets its colors</small
+                    >
+                  </span>
+                  <select id="setting-glass-colors" aria-label="Glass colors">
+                    <option value="accent">Accent color</option>
+                    <option value="page">Open website</option>
+                  </select>
+                </div>
+                <label class="setting-row">
+                  <span>
+                    <strong>Section dividers</strong>
+                    <small>Lines between the bars, the page and rows</small>
+                  </span>
+                  <input
+                    id="setting-show-dividers"
+                    type="checkbox"
+                    class="switch"
+                  />
+                </label>
+                <label id="smooth-dividers-row" class="setting-row">
+                  <span>
+                    <strong>Smooth dividers</strong>
+                    <small>Blend colors with a gradient instead of lines</small>
+                  </span>
+                  <input
+                    id="setting-smooth-dividers"
+                    type="checkbox"
+                    class="switch"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-panel" data-panel="navigation" hidden>
+              <div class="settings-card">
+                <div id="default-browser-row" class="setting-row" hidden>
+                  <span>
+                    <strong>Default browser</strong>
+                    <small id="default-browser-text"
+                      >Open links from other apps in Terra</small
+                    >
+                  </span>
+                  <button id="make-default" class="button">Make default</button>
+                </div>
+                <label class="setting-row stack">
+                  <span>
+                    <strong>Search engine</strong>
+                    <small
+                      >Used when you type something that isn't a web
+                      address</small
+                    >
+                  </span>
+                  <select id="setting-search-engine"></select>
+                </label>
+                <label class="setting-row stack">
+                  <span>
+                    <strong>Home page</strong>
+                    <small>Leave empty for the clean search page</small>
+                  </span>
+                  <input
+                    id="setting-home-page"
+                    type="text"
+                    spellcheck="false"
+                    autocapitalize="off"
+                    inputmode="url"
+                    placeholder="Clean search page"
+                  />
+                </label>
+                <label class="setting-row stack">
+                  <span>
+                    <strong>When Terra starts</strong>
+                    <small>Pick up where you left off, or start fresh</small>
+                  </span>
+                  <select id="setting-startup">
+                    <option value="restore">Reopen your tabs</option>
+                    <option value="newTab">Open a new tab</option>
+                  </select>
+                </label>
+                <label class="setting-row">
+                  <span>
+                    <strong>Search suggestions</strong>
+                    <small id="search-suggestions-text"
+                      >Sends what you type in the address bar to your search
+                      engine</small
+                    >
+                  </span>
+                  <input
+                    id="setting-search-suggestions"
+                    type="checkbox"
+                    class="switch"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-panel" data-panel="features" hidden>
+              <div class="settings-card">
+                <label class="setting-row">
+                  <span>
+                    <strong>Force dark mode</strong>
+                    <small
+                      >Make every website dark, even without a dark mode</small
+                    >
+                  </span>
+                  <input
+                    id="setting-force-dark"
+                    type="checkbox"
+                    class="switch"
+                  />
+                </label>
+                <label class="setting-row">
+                  <span>
+                    <strong>Swipe through tabs</strong>
+                    <small>Swipe the address bar sideways to switch tabs</small>
+                  </span>
+                  <input
+                    id="setting-scroll-tabs"
+                    type="checkbox"
+                    class="switch"
+                  />
+                </label>
+                <div id="updates-row" class="setting-row">
+                  <span>
+                    <strong>Updates</strong>
+                    <small id="update-status">Checking…</small>
+                  </span>
+                  <div class="row-controls">
+                    <button id="update-button" class="button">Check now</button>
+                    <input
+                      id="setting-auto-update"
+                      type="checkbox"
+                      class="switch"
+                      title="Look for new versions automatically"
+                      aria-label="Look for new versions automatically"
+                    />
+                  </div>
+                </div>
+                <div class="setting-row">
+                  <span>
+                    <strong>Clear browsing data</strong>
+                    <small
+                      >Signs you out of websites and deletes cookies, cache and
+                      history</small
+                    >
+                  </span>
+                  <button id="clear-data" class="danger">Clear data</button>
+                </div>
+              </div>
+            </section>
+
+            <section class="settings-panel" data-panel="history" hidden>
+              <div class="panel-tools">
+                <input
+                  id="history-search"
+                  type="text"
+                  placeholder="Search history"
+                  spellcheck="false"
+                  autocapitalize="off"
+                />
+                <button id="history-clear" class="danger">Clear</button>
+              </div>
+              <div id="history-list"></div>
+            </section>
+
+            <section class="settings-panel" data-panel="downloads" hidden>
+              <div class="settings-card">
+                <div class="card-title">
+                  <span>Files</span>
+                  <span class="card-title-actions">
+                    <button id="downloads-folder" class="text-button">
+                      Open folder
+                    </button>
+                    <button id="downloads-clear" class="text-button">
+                      Clear list
+                    </button>
+                  </span>
+                </div>
+                <div id="downloads-list"></div>
+              </div>
+            </section>
+
+            <section class="settings-panel" data-panel="privacy" hidden>
+              <div class="settings-card">
+                <label class="setting-row">
+                  <span>
+                    <strong>Block ads and trackers</strong>
+                    <small
+                      >Using a public list of ad and tracking sites, kept on
+                      this phone</small
+                    >
+                  </span>
+                  <input
+                    id="setting-block-ads"
+                    type="checkbox"
+                    class="switch"
+                  />
+                </label>
+                <label class="setting-row">
+                  <span>
+                    <strong>Offer to save passwords</strong>
+                    <small
+                      >Saved passwords are encrypted and never leave this
+                      phone</small
+                    >
+                  </span>
+                  <input
+                    id="setting-offer-passwords"
+                    type="checkbox"
+                    class="switch"
+                  />
+                </label>
+                <label class="setting-row">
+                  <span>
+                    <strong
+                      >Clear cookies and site data when Terra starts</strong
+                    >
+                    <small>You will be signed out of websites every time</small>
+                  </span>
+                  <input
+                    id="setting-clear-on-exit"
+                    type="checkbox"
+                    class="switch"
+                  />
+                </label>
+              </div>
+              <div class="settings-card">
+                <div class="card-title">
+                  <span>Site permissions</span>
+                </div>
+                <div id="sites-list"></div>
+              </div>
+            </section>
+
+            <section class="settings-panel" data-panel="bookmarks" hidden>
+              <div class="panel-tools">
+                <input
+                  id="bookmarks-search"
+                  type="text"
+                  placeholder="Search bookmarks"
+                  spellcheck="false"
+                  autocapitalize="off"
+                />
+              </div>
+              <!-- Importing from other browsers is for computers. -->
+              <div class="settings-card" hidden>
+                <span id="import-status"></span>
+                <select id="import-source" aria-label="Browser"></select>
+                <button id="import-button" class="button">Import</button>
+              </div>
+              <div class="settings-card list-card">
+                <div class="card-title">
+                  <span>Bookmarks</span>
+                </div>
+                <div id="bookmarks-list"></div>
+              </div>
+            </section>
+
+            <section class="settings-panel" data-panel="passwords" hidden>
+              <div class="panel-tools">
+                <input
+                  id="passwords-search"
+                  type="text"
+                  placeholder="Search passwords"
+                  spellcheck="false"
+                  autocapitalize="off"
+                />
+                <button id="passwords-import" class="button">Import CSV</button>
+              </div>
+              <div class="settings-card list-card">
+                <div class="card-title">
+                  <span id="passwords-title">Saved passwords</span>
+                </div>
+                <div id="passwords-list"></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Menus (the ⋮ button, long presses, the lock): a sheet from below. -->
+    <div id="sheet" class="sheet" role="menu" hidden></div>
+
+    <script type="module" src="/src/phone/renderer.ts"></script>
+  </body>
+</html>

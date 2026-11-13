@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Terra's logo (assets/logo.svg), inside the adaptive icon's safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="1256"
+    android:viewportHeight="1256">
+    <group
+        android:pivotX="628"
+        android:pivotY="628"
+        android:scaleX="0.72"
+        android:scaleY="0.72">
+        <path
+            android:fillColor="#000000"
+            android:pathData="M288,288 H968 V500 H956 C956,420 896,358 816,358 H723 V800 C723,930 776,975 833,980 V1000 H423 V980 C480,975 533,930 533,800 V358 H440 C360,358 300,420 300,500 H288 Z" />
+    </group>
+</vector>

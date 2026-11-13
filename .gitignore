@@ -1,0 +1,21 @@
+# Dependencies and builds
+node_modules/
+out/
+dist/
+*.log
+.DS_Store
+
+# Android (npm run apk)
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/ui/
+.idea/
+*.iml
+
+# The release signing key: never commit it, and keep it (updates must be
+# signed with the same key).
+android/keystore.properties
+android/*.jks

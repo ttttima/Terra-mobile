@@ -1,0 +1,815 @@
+/*
+ * Terra for Android: the desktop's styles (index.css), laid out for a phone.
+ * Same design rules (CLAUDE.md) and tokens; the phone only takes the size
+ * tokens one step up for fingers, keeping their structure: three control
+ * heights, and every bar is --control-lg tall with --control items, 8px
+ * above and below them.
+ *
+ * The web page is a native view under this page: #page-area is a hole that
+ * shows it (see layout.ts), with the window's background around it.
+ */
+@import '../index.css';
+
+/* ============================================================ tokens */
+
+:root {
+  --control-sm: 32px;
+  --control: 40px;
+  --control-lg: 56px;
+  --icon: 20px;
+  --icon-sm: 16px;
+  /* The tabs drawer and the settings list: the sidebar, one step wider. */
+  --sidebar-full: 320px;
+  --text-md: 14px;
+  /* Dims the page under drawers and sheets. */
+  --scrim: rgba(0, 0, 0, 0.4);
+
+  /* Space the system takes (status bar, gesture bar, keyboard), in CSS
+     pixels, set by layout.ts from the app. */
+  --inset-top: 0px;
+  --inset-bottom: 0px;
+  --inset-left: 0px;
+  --inset-right: 0px;
+  --ime: 0px;
+  /* What the bottom of the screen gives the UI: the keyboard or the
+     gesture bar, whichever is taller. */
+  --bottom: max(var(--inset-bottom), var(--ime));
+  /* The drawer leaves a strip of the page to tap. */
+  --drawer-width: min(var(--sidebar-full), 100vw - var(--control-lg));
+}
+
+[data-theme='light'] {
+  --scrim: rgba(16, 24, 40, 0.24);
+}
+
+/* ============================================================ base */
+
+html,
+body {
+  background: transparent;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
+body {
+  display: block;
+}
+
+/* Nothing on a phone hovers: buttons answer to being pressed instead. */
+@media (hover: none) {
+  button:hover:not(:disabled),
+  .tab:hover,
+  .list-row.clickable:hover,
+  .suggest-item:hover {
+    background: transparent;
+  }
+
+  button:active:not(:disabled),
+  .tab:active,
+  .list-row.clickable:active,
+  .suggest-item:active {
+    background: var(--hover);
+  }
+
+  .icon-button:hover:not(:disabled) {
+    color: var(--muted);
+  }
+}
+
+/* A switch for fingers: 44 x 24, knob 20 with 2px inset on every side. */
+.switch {
+  width: calc(var(--icon) * 2 + var(--space-1));
+  height: calc(var(--icon) + var(--space-1));
+}
+
+.switch::after {
+  width: var(--icon);
+  height: var(--icon);
+}
+
+.switch:checked::after {
+  transform: translateX(var(--icon));
+}
+
+/* ============================================================ the window */
+
+/* Everything around the web page: the panel color (or glass), with a hole
+   where the page shows (--hole, a clip path from layout.ts). */
+#chrome-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: var(--panel);
+  clip-path: var(--hole, none);
+  pointer-events: none;
+  transition: background var(--duration);
+}
+
+#backdrop,
+body.smooth-dividers::after,
+body.glass::after {
+  clip-path: var(--hole, none);
+}
+
+/* index.css paints the glass on <body>; here it goes on #chrome-bg, which
+   keeps the hole for the page. */
+body.glass,
+body.glass.smooth-dividers,
+body.smooth-dividers {
+  background: transparent;
+  box-shadow: none;
+}
+
+body.glass #chrome-bg {
+  background:
+    linear-gradient(160deg, var(--glass-sheen), transparent 40%),
+    radial-gradient(
+      60% 55% at 8% 12%,
+      color-mix(in srgb, var(--glass-1) var(--glass-light), transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      55% 50% at 92% 88%,
+      color-mix(in srgb, var(--glass-2) var(--glass-light), transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 40% at 70% 6%,
+      color-mix(in srgb, var(--glass-3) var(--glass-light), transparent),
+      transparent 70%
+    ),
+    var(--panel);
+}
+
+body.backdrop-gl #chrome-bg {
+  background: transparent;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--inset-top) var(--inset-right) var(--bottom) var(--inset-left);
+}
+
+/* The web page: a rounded card between the status bar and the toolbar. */
+#page-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: var(--radius-page);
+}
+
+/* Smooth dividers: the glow around the page. The page itself is under
+   this layer, so only the glow outside the card is drawn. */
+#page-glow {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-page);
+  pointer-events: none;
+}
+
+body.smooth-dividers #page-glow {
+  background: transparent;
+}
+
+body {
+  --edge: var(--page-bottom, var(--page-top, var(--bg)));
+}
+
+body.start-open {
+  --edge: var(--bg);
+}
+
+/* Typing in the web page: the keyboard takes the toolbar's place. */
+body.ime-page #toolbar,
+body.ime-page #notice-bar,
+body.fullscreen #toolbar,
+body.fullscreen #notice-bar {
+  display: none;
+}
+
+/* ============================================================ toolbar */
+
+#toolbar {
+  position: relative;
+  gap: var(--space-2);
+  border-top: 1px solid var(--divider);
+  border-bottom: none;
+}
+
+body.smooth-dividers #toolbar {
+  border-color: transparent;
+}
+
+/* Loading: a thin line in the accent color along the toolbar's top. */
+#progress {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  opacity: 0;
+  transition:
+    width var(--duration),
+    opacity var(--duration);
+  pointer-events: none;
+}
+
+#progress.loading {
+  opacity: 1;
+}
+
+/* Tabs button: a square with the number of tabs in it, like a badge. */
+#tabs-button {
+  position: relative;
+}
+
+.tab-count {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
+  pointer-events: none;
+}
+
+#tabs-button.many .tab-count {
+  font-size: var(--text-xs);
+  letter-spacing: -0.04em;
+}
+
+/* The address: the site's name in a soft field, the lock and refresh
+   mirrored inside it. 8px corners with 4px inside: 4px for the buttons. */
+.address-box {
+  height: var(--control);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius);
+  background: var(--hover);
+  touch-action: pan-y;
+  transition:
+    background var(--duration),
+    box-shadow var(--duration),
+    transform var(--duration);
+}
+
+.address-box.dragging {
+  transition: none;
+}
+
+.address-box .icon-button {
+  width: var(--control-sm);
+  height: var(--control-sm);
+  min-width: var(--control-sm);
+  border-radius: var(--radius-sm);
+}
+
+.address-box:has(#address:focus) {
+  background: var(--input-bg);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+#address,
+#address:hover,
+#address:focus {
+  height: 100%;
+  padding: 0 var(--space-2);
+  border: none;
+  background: transparent;
+}
+
+#address:focus {
+  color: var(--text-strong);
+}
+
+#reload-button .icon-stop,
+#reload-button.loading .icon-reload {
+  display: none;
+}
+
+#reload-button.loading .icon-stop {
+  display: block;
+}
+
+#clear-address {
+  display: none;
+}
+
+/* Typing an address: the field takes the whole bar. */
+body.editing #tabs-button,
+body.editing #menu-button,
+body.editing #site-button,
+body.editing #reload-button {
+  display: none;
+}
+
+body.editing #clear-address {
+  display: inline-flex;
+}
+
+/* On the new tab page its own big search box is the address bar. */
+body.start-open:not(.editing) .address-box {
+  visibility: hidden;
+}
+
+body.start-open #address {
+  visibility: visible;
+}
+
+.find-bar input {
+  height: var(--control);
+}
+
+/* ============================================================ new tab page */
+
+#start-page {
+  position: absolute;
+  inset: 0;
+  padding: var(--space-6) var(--space-4);
+  border-radius: var(--radius-page);
+  overflow: hidden;
+}
+
+.start-title {
+  text-wrap: balance;
+}
+
+#start-form {
+  height: var(--control-lg);
+}
+
+/* ============================================================ questions */
+
+#notice-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--divider);
+  background: transparent;
+}
+
+body.smooth-dividers #notice-bar {
+  border-color: transparent;
+}
+
+.notice-text {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.notice-controls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.notice-controls input,
+.notice-controls select {
+  flex: 1 1 100%;
+  width: 100%;
+  height: var(--control);
+}
+
+/* ============================================================ suggestions */
+
+/* Over the page while typing, the best match nearest the address bar. */
+#suggest {
+  position: fixed;
+  inset: var(--inset-top) var(--inset-right) var(--suggest-bottom, 0)
+    var(--inset-left);
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: var(--space-2);
+  background: var(--bg);
+}
+
+#suggest.from-start {
+  justify-content: flex-start;
+  background: transparent;
+  pointer-events: none;
+}
+
+.suggest-list {
+  position: static;
+  display: flex;
+  flex-direction: column-reverse;
+  max-height: 100%;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+
+#suggest.from-start .suggest-list {
+  flex-direction: column;
+  position: absolute;
+  left: var(--suggest-left, var(--space-2));
+  width: var(--suggest-width, auto);
+  top: var(--suggest-top, 0);
+  max-height: var(--suggest-max, 50vh);
+}
+
+.suggest-item {
+  flex-shrink: 0;
+  height: var(--control-lg);
+}
+
+.suggest-item .suggest-title,
+.suggest-item .suggest-detail {
+  display: block;
+}
+
+.suggest-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.suggest-text .suggest-detail {
+  max-width: 100%;
+}
+
+/* ============================================================ drawer */
+
+#scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  background: var(--scrim);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration);
+}
+
+body.scrim #scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#sidebar,
+body.smooth-dividers #sidebar,
+body.glass #sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  width: calc(var(--drawer-width) + var(--inset-left));
+  padding: var(--inset-top) 0 var(--inset-bottom) var(--inset-left);
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  transform: translateX(calc(-100% - var(--space-4)));
+  transition: transform var(--duration);
+  touch-action: pan-y;
+}
+
+body.drawer-open #sidebar {
+  transform: none;
+}
+
+#sidebar.dragging {
+  transition: none;
+}
+
+body.smooth-dividers #sidebar .bar {
+  border-color: transparent;
+}
+
+/* Tabs: the close button always shows (nothing hovers), and a row can be
+   swiped away or held and dragged to a new place. */
+.tab {
+  touch-action: pan-y;
+}
+
+.tab .tab-close {
+  visibility: visible;
+}
+
+.tab.swiping {
+  transition: none;
+}
+
+.tab.lifted {
+  z-index: 1;
+  background: var(--hover);
+  box-shadow: var(--shadow);
+  transition: none;
+}
+
+.tab.shifted {
+  transition: transform var(--duration);
+}
+
+#tabs {
+  overflow-x: hidden;
+}
+
+.bookmarks-pop {
+  top: calc(var(--inset-top) + var(--control-lg) + var(--space-1));
+  left: calc(var(--inset-left) + var(--space-1));
+  z-index: 21;
+  width: calc(var(--drawer-width) - var(--space-2));
+  max-height: calc(
+    100vh - var(--inset-top) - var(--inset-bottom) - var(--control-lg) * 2 -
+      var(--space-2)
+  );
+}
+
+/* Folder buttons show when the folder is open; bookmarks use a long press. */
+@media (hover: none) {
+  .pop-row:hover .list-action,
+  .pop-row:focus-within .list-action {
+    display: none;
+  }
+
+  .pop-folder.open .list-action {
+    display: inline-flex;
+  }
+
+  .pop-folder.open .pop-count {
+    display: none;
+  }
+}
+
+/* ============================================================ sheet */
+
+/* Menus slide up from the bottom: a 12px card with 4px inside, so its
+   rows have 8px corners (12 - 4). */
+.sheet {
+  position: fixed;
+  right: calc(var(--inset-right) + var(--space-2));
+  bottom: calc(var(--inset-bottom) + var(--space-2));
+  left: calc(var(--inset-left) + var(--space-2));
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--inset-top) - var(--inset-bottom) - 64px);
+  padding: var(--space-1);
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  transform: translateY(calc(100% + var(--space-8)));
+  transition: transform var(--duration);
+}
+
+.sheet.open {
+  transform: none;
+}
+
+.sheet-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  width: 100%;
+  height: calc(var(--control) + var(--space-2));
+  padding: 0 var(--space-3);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-align: left;
+  justify-content: flex-start;
+}
+
+.sheet-row .icon {
+  color: var(--muted);
+}
+
+.sheet-row .sheet-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sheet-row .sheet-check {
+  color: var(--accent);
+}
+
+.sheet-row .sheet-detail {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.sheet-header {
+  flex-shrink: 0;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.sheet-separator {
+  flex-shrink: 0;
+  height: 1px;
+  margin: var(--space-1) var(--space-3);
+  background: var(--divider);
+}
+
+/* The row of icons at the top of the main menu: evenly spread. */
+.sheet-icons {
+  display: flex;
+  justify-content: space-around;
+  flex-shrink: 0;
+  height: var(--control-lg);
+  align-items: center;
+}
+
+.sheet-icons .icon-button {
+  width: var(--control-lg);
+  height: var(--control-lg);
+  border-radius: var(--radius);
+}
+
+.sheet-icons .icon-button.checked {
+  color: var(--accent);
+}
+
+.sheet-stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sheet-stepper .icon-button {
+  width: var(--control);
+  height: var(--control);
+}
+
+.sheet-stepper .sheet-detail {
+  min-width: var(--control-lg);
+  text-align: center;
+}
+
+.sheet-row:disabled .icon,
+.sheet-row:disabled {
+  color: var(--disabled);
+}
+
+/* ============================================================ settings */
+
+/* One screen at a time: the list of pages, then the page. */
+#settings,
+body.smooth-dividers #settings {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: block;
+  padding: var(--inset-top) var(--inset-right) var(--inset-bottom)
+    var(--inset-left);
+  background: var(--bg);
+}
+
+/* Glass and smooth dividers show behind settings, as on the desktop: the
+   browser under it steps aside. */
+body.glass #settings,
+body.backdrop-gl.smooth-dividers #settings {
+  background: transparent;
+}
+
+body.settings-open #app {
+  visibility: hidden;
+}
+
+.settings-nav,
+.settings-main {
+  height: 100%;
+}
+
+.settings-nav,
+body.smooth-dividers .settings-nav,
+body.glass .settings-nav {
+  border-right: none;
+  background: transparent;
+}
+
+#settings.show-panel .settings-nav,
+#settings:not(.show-panel) .settings-main {
+  display: none;
+}
+
+.settings-nav .sidebar-body {
+  flex: 0 0 auto;
+}
+
+.settings-version {
+  margin: auto 0 0;
+  padding: var(--space-4);
+  color: var(--muted);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.settings-main .bar {
+  padding: 0 var(--space-2);
+}
+
+.settings-content {
+  padding: var(--space-4);
+  padding-bottom: calc(var(--space-4) + var(--ime));
+}
+
+.category.active,
+.category.active:hover:not(:disabled) {
+  background: transparent;
+  color: var(--tab-text);
+}
+
+.category.active .icon {
+  color: var(--muted);
+}
+
+/* Wide controls go under their label on a narrow screen. */
+.setting-row {
+  gap: var(--space-4);
+}
+
+.setting-row.stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.setting-row.stack select,
+.setting-row.stack input[type='text'] {
+  width: 100%;
+}
+
+.accent-picker {
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* Swatches in even columns across the row, wrapping into the same ones. */
+.accent-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--control-sm));
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-1);
+  width: 100%;
+}
+
+.theme-picker {
+  justify-content: space-between;
+}
+
+.color-panel {
+  width: calc(100vw - var(--space-8));
+  max-width: calc(var(--sidebar-full) + var(--space-4));
+}
+
+/* Rows in History, Bookmarks and Passwords: the buttons always show. */
+#history-list .list-action,
+#bookmarks-list .list-action,
+#passwords-list .list-action {
+  visibility: visible;
+}
+
+.list-action {
+  width: var(--control);
+  height: var(--control);
+  min-width: var(--control);
+  border-radius: var(--radius);
+}
+
+.panel-tools input {
+  height: var(--control);
+}
+
+.panel-tools button {
+  flex-shrink: 0;
+}
+
+/* ============================================================ fullscreen */
+
+body.fullscreen #chrome-bg,
+body.fullscreen #backdrop {
+  display: none;
+}
+
+/* ============================================================ odds and ends */
+
+/* Finding on the page: the find bar takes the whole toolbar. */
+body.finding #tabs-button,
+body.finding #menu-button {
+  display: none;
+}
+
+/* The settings list leads somewhere: a chevron on the right of each row. */
+.category .row-chevron {
+  margin-left: auto;
+  color: var(--muted);
+}

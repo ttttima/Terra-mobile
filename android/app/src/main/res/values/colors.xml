@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The dark color mode's panel and accent colors (src/index.css). -->
+    <color name="panel">#191c23</color>
+    <color name="accent">#4f7cff</color>
+    <color name="icon_background">#ffffff</color>
+</resources>
