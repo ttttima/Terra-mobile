@@ -15,7 +15,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/phone.png" width="300" alt="Terra on a phone: the new tab page with the search bar and the toolbar at the bottom" />
+  <img src="docs/phone.png" width="300" alt="Terra on a phone: the new tab page with just a search bar, and the toolbar at the bottom" />
 </p>
 
 The phone version of [Terra](https://github.com/ttttima/Terra-Browser): the same

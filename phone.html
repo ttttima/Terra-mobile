@@ -8,7 +8,7 @@
     />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com"
+      content="default-src 'self'; script-src 'self'; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline'; font-src 'self'"
     />
     <title>Terra</title>
     <!-- Terra for Android: the same UI as index.html, laid out for a phone
@@ -18,12 +18,6 @@
         visibility: hidden;
       }
     </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Playwrite+AU+VIC&display=swap"
-    />
   </head>
   <body class="starting">
     <!-- The window's soft gradients, drawn dithered by ui-backdrop.ts. -->
@@ -37,7 +31,6 @@
         <div id="page-glow" aria-hidden="true"></div>
         <section id="start-page" hidden>
           <div class="start-inner">
-            <h1 class="start-title">Find whatever. Go wherever.</h1>
             <form id="start-form" autocomplete="off">
               <svg
                 class="icon start-icon"

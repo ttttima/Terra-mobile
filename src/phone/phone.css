@@ -20,6 +20,8 @@
   --icon-sm: 16px;
   /* The tabs drawer and the settings list: the sidebar, one step wider. */
   --sidebar-full: 320px;
+  /* The web page fills the width edge to edge: square corners. */
+  --radius-page: 0px;
   --text-md: 14px;
   /* Dims the page under drawers and sheets. */
   --scrim: rgba(0, 0, 0, 0.4);
@@ -334,10 +336,6 @@ body.start-open #address {
   padding: var(--space-6) var(--space-4);
   border-radius: var(--radius-page);
   overflow: hidden;
-}
-
-.start-title {
-  text-wrap: balance;
 }
 
 #start-form {

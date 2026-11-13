@@ -73,9 +73,8 @@ exactly 8px above and below them.
 - `--radius-lg` 12: cards
 - `--radius-full`: only for things that are round by nature (switches,
   color swatches, the new-tab search pill)
-- `--radius-page` 35: the web page's corners, a rounded card above the
-  toolbar. The owner's choice and the one value off the 4px grid; the
-  desktop uses the same.
+- `--radius-page` 0 on the phone (35 on the desktop): the web page has
+  square corners, edge to edge above the toolbar.
 - A shape inside another uses `outer radius - padding` so curves stay parallel.
 
 ### 4. Shared axes and lines
@@ -98,7 +97,7 @@ exactly 8px above and below them.
 
 - Only these sizes: 10 (letter badges only), 12 (secondary text, labels),
   14 (all normal UI text on the phone, `--text-md`), 16 (new-tab search),
-  24 (page titles), 40 (new-tab headline only, in Playwrite AU VIC).
+  24 (page titles). No new-tab headline on the phone.
 - Only two weights: 400 and 600.
 
 ### 7. Color and motion
