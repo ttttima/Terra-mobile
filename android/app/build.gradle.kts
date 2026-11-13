@@ -5,9 +5,12 @@ plugins {
     id("com.android.application")
 }
 
-// The version in package.json.
+// The version in package.json, read through providers so Gradle's
+// configuration cache notices when it changes.
 @Suppress("UNCHECKED_CAST")
-val packageJson = JsonSlurper().parse(rootDir.resolve("../package.json")) as Map<String, Any>
+val packageJson = JsonSlurper().parseText(
+    providers.fileContents(rootProject.layout.projectDirectory.file("../package.json")).asText.get(),
+) as Map<String, Any>
 val terraVersion = packageJson["version"] as String
 val terraVersionCode = terraVersion.split(".").map { it.takeWhile(Char::isDigit).toInt() }
     .let { (major, minor, patch) -> major * 10_000 + minor * 100 + patch }

@@ -1,7 +1,7 @@
 {
   "name": "terra-mobile",
   "productName": "Terra",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "private": true,
   "description": "Terra for Android: a clean, minimal web browser with vertical tabs",
   "keywords": [],
