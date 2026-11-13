@@ -18,7 +18,7 @@
   <img src="docs/phone.png" width="300" alt="Terra on a phone: the new tab page with the search bar and the toolbar at the bottom" />
 </p>
 
-The phone version of [Terra](https://github.com/ttttima/Browser): the same
+The phone version of [Terra](https://github.com/ttttima/Terra-Browser): the same
 browser and the same design, laid out for a phone.
 
 ## Install
@@ -96,7 +96,7 @@ Keep both: updates install only over an app signed with the same key.
 
 The UI shares code with the desktop app: `src/shared.ts`, `src/ui-*.ts`,
 `src/suggest-local.ts` and `src/index.css` are the same files as in
-[Terra](https://github.com/ttttima/Browser), so a change to them belongs in
+[Terra](https://github.com/ttttima/Terra-Browser), so a change to them belongs in
 both.
 
 ## License

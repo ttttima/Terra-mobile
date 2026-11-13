@@ -1,7 +1,7 @@
 # Terra for Android
 
 Terra-mobile is the Android version of Terra, the desktop browser in
-[ttttima/Browser](https://github.com/ttttima/Browser) (Electron). It is the
+[ttttima/Terra-Browser](https://github.com/ttttima/Terra-Browser) (Electron). It is the
 same UI and design laid out for a phone, on top of a native Kotlin shell.
 
 - `phone.html` + `src/phone/`: the UI, built by `vite.config.mts` into the
