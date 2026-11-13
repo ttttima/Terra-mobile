@@ -14,6 +14,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.Display
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
@@ -36,6 +37,8 @@ import android.window.OnBackInvokedDispatcher
 import androidx.webkit.WebViewAssetLoader
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /**
  * Terra's one window. Three layers, bottom to top:
@@ -77,6 +80,7 @@ class MainActivity : Activity() {
         val prefs = getSharedPreferences("terra", MODE_PRIVATE)
         val panel = prefs.getInt("panel", Color.parseColor("#191c23"))
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(panel))
+        applyFrameRate()
 
         host = Host(this)
         passwords = Passwords(this)
@@ -299,6 +303,57 @@ class MainActivity : Activity() {
                 ?.showSoftInput(ui, InputMethodManager.SHOW_IMPLICIT)
         }, 60)
     }
+
+    // ------------------------------------------------------------ frame rate
+
+    /**
+     * The rates this screen can show at its current size (60, 90, 120...).
+     * Many phones run apps at 60 unless they ask for more.
+     */
+    private fun displayModes(): List<Display.Mode> {
+        @Suppress("DEPRECATION")
+        val screen = (if (Build.VERSION.SDK_INT >= 30) display else windowManager.defaultDisplay)
+            ?: return emptyList()
+        val now = screen.mode
+        return screen.supportedModes.filter {
+            it.physicalWidth == now.physicalWidth && it.physicalHeight == now.physicalHeight
+        }
+    }
+
+    private fun fastestMode() = displayModes().maxByOrNull { it.refreshRate }
+
+    /** A screen with one rate has nothing to choose. */
+    private fun canBeSmooth() = (fastestMode()?.refreshRate ?: 0f) >= FASTER_THAN_60
+
+    private fun smoothWanted() =
+        getSharedPreferences("terra", MODE_PRIVATE).getBoolean("smooth", true)
+
+    /**
+     * "Smooth motion": asks Android to show the whole app (the UI and the
+     * web pages) at the screen's highest rate, or at the usual 60 when it
+     * is off. Kept here, so it holds from the first frame of the next
+     * start.
+     */
+    private fun applyFrameRate() {
+        val params = window.attributes
+        params.preferredDisplayModeId = when {
+            !canBeSmooth() -> 0
+            smoothWanted() -> fastestMode()?.modeId ?: 0
+            else -> displayModes().minByOrNull { abs(it.refreshRate - 60f) }?.modeId ?: 0
+        }
+        window.attributes = params
+    }
+
+    fun setSmooth(on: Boolean) {
+        getSharedPreferences("terra", MODE_PRIVATE).edit().putBoolean("smooth", on).apply()
+        applyFrameRate()
+    }
+
+    /** For settings: the fastest this screen goes, and whether it's wanted. */
+    fun smoothInfo(): JSONObject = JSONObject()
+        .put("max", (fastestMode()?.refreshRate ?: 60f).roundToInt())
+        .put("supported", canBeSmooth())
+        .put("on", smoothWanted())
 
     /**
      * A small tap from the phone when something in the UI happens (a tab
@@ -574,6 +629,9 @@ class MainActivity : Activity() {
     companion object {
         const val TAG = "Terra"
         const val UI_HOST = "appassets.androidplatform.net"
+
+        /** Above this many frames a second a screen counts as a fast one. */
+        private const val FASTER_THAN_60 = 70f
 
         /** How finely the keyboard's motion curve is described to the UI. */
         private const val CURVE_STEPS = 20

@@ -51,7 +51,8 @@ installs over the old version and keeps your tabs, bookmarks and passwords.
   past the first one opens a new tab page
 - **Fluid motion**: the drawer, menus and tabs follow your finger, keep its
   speed when you let go and can be caught mid-flight; pages slide between
-  tabs
+  tabs. On screens that can, the whole app runs at 90 or 120 frames a
+  second (Settings → Features → Smooth motion)
 - **Clean new tab page**: just a search bar, nothing else
 - **Picks up where you left off**: your tabs come back after a restart,
   with pinned tabs, muting and private tabs

@@ -187,6 +187,23 @@ smoothDividers.addEventListener('change', () => {
 forceDark.addEventListener('change', () =>
   window.browser.updateSettings({ forceDark: forceDark.checked }),
 );
+// "Smooth motion": the whole app at the screen's highest frame rate. Not
+// every screen has more than 60; then there is nothing to switch.
+const smooth = $<HTMLInputElement>('#setting-smooth');
+void window.terra
+  .invoke<{ max: number; supported: boolean; on: boolean }>('terra:smooth-info')
+  .then((info) => {
+    smooth.checked = info.supported && info.on;
+    smooth.disabled = !info.supported;
+    $('#smooth-row').classList.toggle('disabled', !info.supported);
+    $('#smooth-status').textContent = info.supported
+      ? `Show Terra at ${info.max} frames a second instead of 60. Uses a little more battery.`
+      : 'This screen shows 60 frames a second';
+  });
+smooth.addEventListener('change', () =>
+  window.terra.send('terra:smooth-set', smooth.checked),
+);
+
 scrollTabs.addEventListener('change', () =>
   window.browser.updateSettings({ scrollTabs: scrollTabs.checked }),
 );

@@ -1875,6 +1875,10 @@ export const commands: Record<string, (...args: never[]) => unknown> = {
   },
   'terra:update-install': installUpdate,
   'terra:update-allow-reopen': () => post('update.allowReopen'),
+  // "Smooth motion" lives in the app itself (it holds from the first
+  // frame of the next start): the screen's highest frame rate, or 60.
+  'terra:smooth-set': (on: boolean) =>
+    post('display.smooth', { on: on === true }),
   'terra:tab-menu': (id: number) => showTabMenu(Number(id)),
   'terra:tab-mute': (id: number) => toggleMute(Number(id)),
   'terra:new-private-tab': newPrivateTab,
@@ -1939,6 +1943,10 @@ export const queries: Record<string, (...args: never[]) => unknown> = {
   }),
   'terra:update-check': async () => (await checkForUpdate())?.version ?? null,
   'terra:update-can-reopen': canReopen,
+  'terra:smooth-info': () =>
+    (inApp
+      ? call<{ max: number; supported: boolean; on: boolean }>('display.info')
+      : null) ?? { max: 60, supported: false, on: false },
   'terra:app-info': () => appInfo,
 };
 

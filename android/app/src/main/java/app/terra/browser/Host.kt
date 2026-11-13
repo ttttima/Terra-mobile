@@ -90,6 +90,7 @@ class Host(private val activity: MainActivity) {
             if (file != null && file.exists()) JSONObject.quote(file.readText()) else "null"
         }
         "update.canReopen" -> activity.selfUpdate.canReopen().toString()
+        "display.info" -> activity.smoothInfo().toString()
         "app.info" -> JSONObject()
             .put("version", BuildConfig.VERSION_NAME)
             .put("privateIsolated", Tabs.privateSupported())
@@ -164,6 +165,7 @@ class Host(private val activity: MainActivity) {
                 data.optInt("from"),
             )
             "haptic" -> activity.haptic(data.optString("kind"))
+            "display.smooth" -> activity.setSmooth(data.optBoolean("on"))
             "tab.back" -> tabs.get(data)?.view?.goBack()
             "tab.forward" -> tabs.get(data)?.view?.goForward()
             "tab.reload" -> tabs.get(data)?.let { tabs.reload(it) }

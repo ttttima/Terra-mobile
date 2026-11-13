@@ -160,6 +160,11 @@ Everything that moves follows `src/phone/motion.ts`; keep new motion on it.
   The layout changes at once; only `transform` and the page's edge move.
 - Web pages are native views: swiping through tabs pushes them sideways in
   `Tabs.kt` with the same spring as an Android interpolator.
+- Frame rate: "Smooth motion" (Settings → Features) asks Android for the
+  screen's fastest mode for the whole window, UI and pages alike, or 60
+  when off (`applyFrameRate` in `MainActivity.kt`, kept in the app's own
+  preferences so it holds from the first frame). Motion is timed by the
+  clock, never by counting frames, so it looks the same at any rate.
 - A sideways drag only reaches the UI where `touch-action` says so, on the
   element and inside any scroll area around it (see the drawer in
   `phone.css`); otherwise the browser cuts the gesture off.
