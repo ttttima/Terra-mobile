@@ -207,8 +207,10 @@ body.start-open {
 /* Typing in the web page: the keyboard takes the toolbar's place. */
 body.ime-page #toolbar,
 body.ime-page #notice-bar,
+body.ime-page #update-bar,
 body.fullscreen #toolbar,
-body.fullscreen #notice-bar {
+body.fullscreen #notice-bar,
+body.fullscreen #update-bar {
   display: none;
 }
 
@@ -397,6 +399,38 @@ body.smooth-dividers #notice-bar {
   flex: 1 1 100%;
   width: 100%;
   height: var(--control);
+}
+
+/* ============================================================ updating */
+
+/* Terra updating itself: what it is doing over a thin line that fills. */
+#update-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--divider);
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+body.smooth-dividers #update-bar {
+  border-color: transparent;
+}
+
+/* The same line across the bottom of the Updates row in settings. */
+#updates-row {
+  flex-wrap: wrap;
+  row-gap: var(--space-3);
+}
+
+#update-progress {
+  flex: 0 0 100%;
+}
+
+#update-bar .progress,
+#update-progress {
+  display: block;
 }
 
 /* ============================================================ suggestions */
@@ -918,6 +952,7 @@ button:active:not(:disabled) {
 /* Things that appear arrive from where they belong: a short rise and a
    fade. They leave at once, so nothing is ever in the way. */
 #notice-bar,
+#update-bar,
 #find-bar,
 .address-box,
 .start-inner,
@@ -940,6 +975,7 @@ button:active:not(:disabled) {
 
 @starting-style {
   #notice-bar,
+  #update-bar,
   #find-bar {
     opacity: 0;
     translate: 0 var(--space-2);

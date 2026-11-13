@@ -31,6 +31,12 @@ whether your browser or file manager may install apps: allow it, then tap
 ## Update
 
 Terra checks for a new version once a day and asks whether to install it.
+Tap **Install** and it downloads the update with a progress bar, installs it
+and opens again, without Android's install screens. Android asks two things
+once: whether Terra may install its updates, and (so it can open again by
+itself) whether it may "display over other apps", which Terra never does. On
+Android 10 and 11 Android still confirms each update.
+
 You can also download the newest APK from
 [Releases](https://github.com/ttttima/Terra-mobile/releases) and open it: it
 installs over the old version and keeps your tabs, bookmarks and passwords.

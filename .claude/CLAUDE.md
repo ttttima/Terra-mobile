@@ -21,8 +21,14 @@ same UI and design laid out for a phone, on top of a native Kotlin shell.
   and desktop-only DOM.
 - `android/`: the native shell (Kotlin, `app.terra.browser`): one WebView
   per tab under the UI; downloads, passwords (Android keystore), ad
-  blocking, permissions, page colors and updates (`Updater.kt`, from this
-  repo's GitHub releases) are done there.
+  blocking, permissions and page colors are done there.
+- Updates come from this repo's GitHub releases (`Updater.kt` looks,
+  `SelfUpdate.kt` installs): the app downloads the APK itself, shows how
+  far it is (`update.ts`), and installs it as a PackageInstaller session,
+  which needs no dialog on Android 12+ once Terra may install apps. Android
+  closes the app to swap it; it can open itself again only with the
+  "Display over other apps" permission, which is asked for and never used
+  to draw anything.
 
 Everything the user saves (history, bookmarks, passwords, settings, open
 tabs) stays on the phone in the app's files; never send it anywhere. Only
@@ -148,6 +154,10 @@ Everything that moves follows `src/phone/motion.ts`; keep new motion on it.
 - Buttons answer a press right away (`scale`, the `--press` amount).
 - The page under the drawer or a menu dims with it (`dim()` in
   `layout.ts`), not on its own timer.
+- The keyboard: the toolbar, the bars on it and the new tab search box
+  slide with it (`layout.ts`), on the timing and curve Android reports for
+  each slide (`ime.motion`), counted from when the keyboard itself began.
+  The layout changes at once; only `transform` and the page's edge move.
 - Web pages are native views: swiping through tabs pushes them sideways in
   `Tabs.kt` with the same spring as an Android interpolator.
 - A sideways drag only reaches the UI where `touch-action` says so, on the

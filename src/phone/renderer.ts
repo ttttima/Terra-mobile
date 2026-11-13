@@ -12,6 +12,7 @@ import { closeLayer } from './layout';
 import { closeSheet } from './sheet';
 import { setSettingsVisible } from './settings';
 import './toolbar';
+import './update';
 
 const body = document.body;
 const startPage = document.querySelector<HTMLElement>('#start-page')!;

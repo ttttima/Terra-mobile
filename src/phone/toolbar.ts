@@ -5,7 +5,13 @@
 import type { FindResult, Notice, Suggestion } from '../shared';
 import type { PhoneState } from './brain';
 import { phoneIcon } from './icons';
-import { closeLayer, openLayer, showKeyboard } from './layout';
+import {
+  closeLayer,
+  onKeyboardLeaving,
+  onKeyboardSettled,
+  openLayer,
+  showKeyboard,
+} from './layout';
 import { LIVELY, Spring, Tracker, haptic, play, rubberband } from './motion';
 
 const $ = <T extends HTMLElement>(selector: string) =>
@@ -86,6 +92,12 @@ address.addEventListener('keydown', (event) => {
   } else if (event.key === 'Escape') {
     address.blur();
   }
+});
+
+// The keyboard put away (Back) means done typing the address: the bar goes
+// back to showing the site, as in other browsers.
+onKeyboardLeaving(() => {
+  if (document.activeElement === address) address.blur();
 });
 
 // The field's padding is part of it too.
@@ -438,10 +450,14 @@ for (const target of [address, startSearch]) {
   });
 }
 
-// The keyboard coming up moves things: follow.
+// The keyboard coming up moves things: follow, and measure again once it
+// has stopped (while it slides, things are drawn off their places).
 new ResizeObserver(() => {
   if (!suggestPanel.hidden) position();
 }).observe($('#page-area'));
+onKeyboardSettled(() => {
+  if (!suggestPanel.hidden) position();
+});
 
 // ---------------------------------------------------------------- find
 

@@ -1582,6 +1582,71 @@ function checkForUpdate(): Promise<UpdateInfo | null> {
   });
 }
 
+/**
+ * Installs the update that was found: the app downloads it, hands it to
+ * Android and is closed and opened again (SelfUpdate.kt). The UI shows how
+ * far it is (update.ts).
+ */
+let updating = false;
+
+function installUpdate() {
+  if (!readyUpdate || updating) return;
+  updating = true;
+  post('update.install', { url: readyUpdate.url });
+  showUpdate({ state: 'downloading', percent: 0, message: null });
+  offerToReopen();
+}
+
+const canReopen = () => inApp && call<boolean>('update.canReopen') === true;
+
+/**
+ * Android closes Terra to update it, and lets an app open itself again
+ * only with its "Display over other apps" permission. Asked once per
+ * start, while the update downloads; Settings has it too.
+ */
+let reopenOffered = false;
+
+function offerToReopen() {
+  if (reopenOffered || canReopen()) return;
+  reopenOffered = true;
+  void ask({
+    kind: 'reopen',
+    tabId: null,
+    text: 'Android closes Terra to update it. To open again by itself, Terra needs the "Display over other apps" permission. It never draws over anything.',
+    actions: [
+      { id: 'allow', label: 'Allow' },
+      { id: 'later', label: 'Not now' },
+    ],
+  }).then((response) => {
+    if (response.action === 'allow') post('update.allowReopen');
+  });
+}
+
+function showUpdate(progress: {
+  state: string;
+  percent: number;
+  message: string | null;
+}) {
+  sendToUi('terra:update-progress', {
+    ...progress,
+    version: readyUpdate?.version ?? '',
+    reopens: canReopen(),
+  });
+}
+
+onHost<{ state: string; percent: number; message: string | null }>(
+  'update.progress',
+  (progress) => {
+    // Android is about to close Terra: the open tabs are saved first.
+    if (progress.state === 'installing') {
+      persistSession();
+      data.flushWrites();
+    }
+    if (progress.state === 'failed') updating = false;
+    showUpdate(progress);
+  },
+);
+
 /** Once a day at most, and only with automatic updates on. */
 async function lookForUpdate() {
   if (!settings.autoUpdate || !inApp) return;
@@ -1599,9 +1664,7 @@ async function lookForUpdate() {
       { id: 'later', label: 'Later' },
     ],
   }).then((response) => {
-    if (response.action === 'install') {
-      post('update.install', { url: update.url });
-    }
+    if (response.action === 'install') installUpdate();
   });
 }
 
@@ -1699,6 +1762,12 @@ onHost<{ state: string }>('lifecycle', ({ state }) => {
     persistSession();
     data.flushWrites();
   } else if (state === 'resume') {
+    // Allowed in Android's settings meanwhile: nothing left to ask.
+    if (canReopen()) {
+      for (const notice of notices.filter((n) => n.kind === 'reopen')) {
+        answerNotice(notice.id, NO_ANSWER);
+      }
+    }
     sendToUi('browser:window-focus', true);
     void lookForUpdate();
   }
@@ -1804,9 +1873,8 @@ export const commands: Record<string, (...args: never[]) => unknown> = {
     }
     sendConfig();
   },
-  'terra:update-install': () => {
-    if (readyUpdate) post('update.install', { url: readyUpdate.url });
-  },
+  'terra:update-install': installUpdate,
+  'terra:update-allow-reopen': () => post('update.allowReopen'),
   'terra:tab-menu': (id: number) => showTabMenu(Number(id)),
   'terra:tab-mute': (id: number) => toggleMute(Number(id)),
   'terra:new-private-tab': newPrivateTab,
@@ -1870,6 +1938,7 @@ export const queries: Record<string, (...args: never[]) => unknown> = {
     ready: readyUpdate?.version ?? null,
   }),
   'terra:update-check': async () => (await checkForUpdate())?.version ?? null,
+  'terra:update-can-reopen': canReopen,
   'terra:app-info': () => appInfo,
 };
 

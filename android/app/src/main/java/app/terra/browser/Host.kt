@@ -89,6 +89,7 @@ class Host(private val activity: MainActivity) {
             val file = safeFile(data.getString("name"))
             if (file != null && file.exists()) JSONObject.quote(file.readText()) else "null"
         }
+        "update.canReopen" -> activity.selfUpdate.canReopen().toString()
         "app.info" -> JSONObject()
             .put("version", BuildConfig.VERSION_NAME)
             .put("privateIsolated", Tabs.privateSupported())
@@ -206,7 +207,8 @@ class Host(private val activity: MainActivity) {
                 if (passwords().savePending(data.getString("token"))) send("logins.changed", null)
             }
             "update.check" -> network.execute { send("update.result", Updater.check()) }
-            "update.install" -> activity.downloads.startUpdate(data.getString("url"))
+            "update.install" -> activity.selfUpdate.start(data.getString("url"))
+            "update.allowReopen" -> activity.selfUpdate.askToReopen()
             "fetch" -> {
                 val id = data.getInt("id")
                 val url = data.getString("url")

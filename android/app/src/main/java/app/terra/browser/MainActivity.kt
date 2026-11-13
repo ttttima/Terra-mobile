@@ -19,6 +19,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
+import android.view.WindowInsetsAnimation
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
@@ -33,6 +34,7 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.window.OnBackInvokedDispatcher
 import androidx.webkit.WebViewAssetLoader
+import org.json.JSONArray
 import org.json.JSONObject
 
 /**
@@ -51,6 +53,7 @@ class MainActivity : Activity() {
     lateinit var host: Host
     lateinit var tabs: Tabs
     lateinit var downloads: Downloads
+    lateinit var selfUpdate: SelfUpdate
     lateinit var passwords: Passwords
     lateinit var adblock: AdBlock
     lateinit var sampler: PageSampler
@@ -79,6 +82,7 @@ class MainActivity : Activity() {
         passwords = Passwords(this)
         adblock = AdBlock(this)
         downloads = Downloads(this)
+        selfUpdate = SelfUpdate(this)
         sampler = PageSampler(this)
 
         root = RootLayout(this)
@@ -141,6 +145,40 @@ class MainActivity : Activity() {
         root.setOnApplyWindowInsetsListener { _, insets ->
             sendInsets(insets)
             WindowInsets.CONSUMED
+        }
+        // The keyboard sliding in or out: the UI is told how long it takes
+        // and on what curve, and moves the toolbar along with it
+        // (layout.ts). The height it ends at arrives through the insets.
+        if (Build.VERSION.SDK_INT >= 30) {
+            root.setWindowInsetsAnimationCallback(
+                object : WindowInsetsAnimation.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+                    override fun onStart(
+                        animation: WindowInsetsAnimation,
+                        bounds: WindowInsetsAnimation.Bounds,
+                    ): WindowInsetsAnimation.Bounds {
+                        if (animation.typeMask and WindowInsets.Type.ime() != 0) {
+                            val curve = JSONArray()
+                            val interpolator = animation.interpolator
+                            for (i in 0..CURVE_STEPS) {
+                                val t = i / CURVE_STEPS.toFloat()
+                                curve.put((interpolator?.getInterpolation(t) ?: t).toDouble())
+                            }
+                            host.send(
+                                "ime.motion",
+                                JSONObject().put("duration", animation.durationMillis).put("curve", curve)
+                                    // When it began, on the clock the UI shares.
+                                    .put("at", System.currentTimeMillis()),
+                            )
+                        }
+                        return bounds
+                    }
+
+                    override fun onProgress(
+                        insets: WindowInsets,
+                        running: MutableList<WindowInsetsAnimation>,
+                    ) = insets
+                },
+            )
         }
 
         if (Build.VERSION.SDK_INT >= 33) {
@@ -512,6 +550,7 @@ class MainActivity : Activity() {
         resumed = true
         tabs.resumeAll()
         host.send("lifecycle", JSONObject().put("state", "resume"))
+        selfUpdate.resumed()
         sampler.soon()
     }
 
@@ -535,6 +574,9 @@ class MainActivity : Activity() {
     companion object {
         const val TAG = "Terra"
         const val UI_HOST = "appassets.androidplatform.net"
+
+        /** How finely the keyboard's motion curve is described to the UI. */
+        private const val CURVE_STEPS = 20
         const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
         private const val REQUEST_FILES = 1
         private const val REQUEST_PERMISSIONS = 2

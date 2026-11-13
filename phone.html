@@ -64,6 +64,12 @@
         <div id="notice-controls" class="notice-controls"></div>
       </div>
 
+      <!-- Terra updating itself: how far it is (update.ts). -->
+      <div id="update-bar" role="status" hidden>
+        <span id="update-bar-text"></span>
+        <span id="update-bar-progress" class="progress"><span></span></span>
+      </div>
+
       <div id="toolbar" class="bar">
         <span id="progress" aria-hidden="true"></span>
         <button
@@ -607,6 +613,18 @@
                       title="Look for new versions automatically"
                       aria-label="Look for new versions automatically"
                     />
+                  </div>
+                  <span id="update-progress" class="progress" hidden
+                    ><span></span
+                  ></span>
+                </div>
+                <div id="reopen-row" class="setting-row">
+                  <span>
+                    <strong>Open again after an update</strong>
+                    <small id="reopen-status"></small>
+                  </span>
+                  <div class="row-controls">
+                    <button id="reopen-button" class="button">Allow</button>
                   </div>
                 </div>
                 <div class="setting-row">

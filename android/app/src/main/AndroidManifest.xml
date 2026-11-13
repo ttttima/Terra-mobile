@@ -13,6 +13,13 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Installing Terra's own updates from its GitHub releases. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Terra updating itself needs no "Do you want to update?" dialog
+         (Android 12 and newer). -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
+    <!-- Only so the new Terra can open again by itself after an update,
+         if the user allows it: Android lets an app start from the
+         background only with this. Terra never draws over other apps. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
@@ -68,5 +75,13 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+        <!-- How an update went, and reopening Terra after it. -->
+        <receiver
+            android:name=".UpdateReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

@@ -29,8 +29,6 @@ class Downloads(private val activity: MainActivity) {
         val url: String,
         val mime: String,
         val started: Long,
-        /** For the update installer: open it when done. */
-        val install: Boolean = false,
         /** Saved straight away (data: links), not by the download manager. */
         val saved: String? = null,
         var state: String = "progressing",
@@ -41,7 +39,6 @@ class Downloads(private val activity: MainActivity) {
     private val items = mutableListOf<Item>()
     private var polling = false
     private var stopped = false
-    private val opened = mutableSetOf<String>()
 
     init {
         load()
@@ -58,7 +55,6 @@ class Downloads(private val activity: MainActivity) {
         @Suppress("UNUSED_PARAMETER") length: Long,
         page: String?,
         private: Boolean,
-        install: Boolean = false,
     ) {
         if (url.startsWith("data:", ignoreCase = true)) return saveData(url)
         if (!url.startsWith("http", ignoreCase = true)) {
@@ -73,11 +69,7 @@ class Downloads(private val activity: MainActivity) {
             .setMimeType(type)
             .setTitle(filename)
             .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-        if (install) {
-            request.setDestinationInExternalFilesDir(activity, Environment.DIRECTORY_DOWNLOADS, filename)
-        } else {
-            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
-        }
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
         request.addRequestHeader("User-Agent", agent ?: android.webkit.WebSettings.getDefaultUserAgent(activity))
         cookies(private).getCookie(url)?.let { request.addRequestHeader("Cookie", it) }
         if (!page.isNullOrBlank() && page.startsWith("http")) request.addRequestHeader("Referer", page)
@@ -87,7 +79,7 @@ class Downloads(private val activity: MainActivity) {
             Toast.makeText(activity, "Couldn't download $filename", Toast.LENGTH_SHORT).show()
             return
         }
-        items.add(0, Item(newId(), system, filename, url, type, System.currentTimeMillis(), install))
+        items.add(0, Item(newId(), system, filename, url, type, System.currentTimeMillis()))
         if (items.size > 500) items.subList(500, items.size).clear()
         save()
         Toast.makeText(activity, "Downloading $filename", Toast.LENGTH_SHORT).show()
@@ -97,10 +89,6 @@ class Downloads(private val activity: MainActivity) {
     /** "Download link" and "Download image" in a page's long-press menu. */
     fun startLink(url: String, page: String, private: Boolean) =
         start(url, null, null, null, 0, page, private)
-
-    /** A new Terra: download the APK and open the installer when done. */
-    fun startUpdate(url: String) = start(url, null, "attachment; filename=Terra.apk",
-        "application/vnd.android.package-archive", 0, null, false, install = true)
 
     private fun cookies(private: Boolean): CookieManager =
         if (private && Tabs.privateSupported()) {
@@ -208,7 +196,6 @@ class Downloads(private val activity: MainActivity) {
             val state = info.getString("state")
             if (state == "progressing" || state == "paused") running = true
             if (before != state) save()
-            if (item.install && state == "completed" && opened.add(item.id)) open(item)
         }
         activity.host.send("downloads", list)
         return running
@@ -270,21 +257,9 @@ class Downloads(private val activity: MainActivity) {
         } catch (_: Exception) {
             null
         } ?: return
-        val type = if (item.install) "application/vnd.android.package-archive" else item.mime
         val intent = Intent(Intent.ACTION_VIEW)
-            .setDataAndType(uri, type)
+            .setDataAndType(uri, item.mime)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-        if (item.install && !activity.packageManager.canRequestPackageInstalls()) {
-            // Android asks once whether Terra may install its own updates.
-            Toast.makeText(activity, "Allow Terra to install the update, then open it from Downloads", Toast.LENGTH_LONG).show()
-            try {
-                activity.startActivity(
-                    Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:${activity.packageName}")),
-                )
-            } catch (_: Exception) {
-            }
-            return
-        }
         try {
             activity.startActivity(intent)
         } catch (_: Exception) {
@@ -311,7 +286,6 @@ class Downloads(private val activity: MainActivity) {
                         o.optString("url"),
                         o.optString("mime"),
                         o.optLong("started"),
-                        o.optBoolean("install"),
                         if (o.isNull("saved")) null else o.optString("saved"),
                         o.optString("state", "progressing"),
                     ),
@@ -332,7 +306,6 @@ class Downloads(private val activity: MainActivity) {
                     .put("url", item.url)
                     .put("mime", item.mime)
                     .put("started", item.started)
-                    .put("install", item.install)
                     .put("saved", item.saved ?: JSONObject.NULL)
                     .put("state", item.state),
             )
