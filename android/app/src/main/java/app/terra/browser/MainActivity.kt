@@ -13,6 +13,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.view.Display
 import android.view.HapticFeedbackConstants
@@ -72,6 +73,16 @@ class MainActivity : Activity() {
     private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
     private var fileCallback: ValueCallback<Array<Uri>>? = null
     private var permissionWaiter: ((Boolean) -> Unit)? = null
+
+    /**
+     * Opening Terra again (the UI then shows a new tab): when it left the
+     * screen, whether its icon was tapped, whether it came back to open a
+     * link, and whether it left for a screen of its own (files, sharing).
+     */
+    private var stoppedAt = 0L
+    private var launcherTap = false
+    private var openedLink = false
+    private var ownTrip = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -436,6 +447,9 @@ class MainActivity : Activity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_LAUNCHER)) {
+            launcherTap = true
+        }
         handleIntent(intent)
     }
 
@@ -454,6 +468,7 @@ class MainActivity : Activity() {
             else -> return
         }
         if (urls.isEmpty() && text.isNullOrBlank()) return
+        openedLink = true
         host.send(
             "open",
             JSONObject()
@@ -605,6 +620,14 @@ class MainActivity : Activity() {
         resumed = true
         tabs.resumeAll()
         host.send("lifecycle", JSONObject().put("state", "resume"))
+        val away = SystemClock.elapsedRealtime() - stoppedAt
+        if (stoppedAt != 0L && !openedLink && (launcherTap || (!ownTrip && away >= AWAY_MS))) {
+            host.send("opened", null)
+        }
+        stoppedAt = 0L
+        launcherTap = false
+        openedLink = false
+        ownTrip = false
         selfUpdate.resumed()
         sampler.soon()
     }
@@ -615,6 +638,17 @@ class MainActivity : Activity() {
         tabs.pauseAll()
         android.webkit.CookieManager.getInstance().flush()
         super.onPause()
+    }
+
+    override fun onStop() {
+        stoppedAt = SystemClock.elapsedRealtime()
+        super.onStop()
+    }
+
+    /** Every screen Terra opens itself goes through here: not a new visit. */
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        ownTrip = true
+        super.startActivityForResult(intent, requestCode, options)
     }
 
     override fun onDestroy() {
@@ -635,6 +669,9 @@ class MainActivity : Activity() {
 
         /** How finely the keyboard's motion curve is described to the UI. */
         private const val CURVE_STEPS = 20
+
+        /** Away this long (or opened from its icon): Terra opens on a new tab. */
+        private const val AWAY_MS = 60_000L
         const val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
         private const val REQUEST_FILES = 1
         private const val REQUEST_PERMISSIONS = 2

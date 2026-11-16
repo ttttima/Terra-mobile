@@ -204,6 +204,15 @@ smooth.addEventListener('change', () =>
   window.terra.send('terra:smooth-set', smooth.checked),
 );
 
+// "New tab when you open Terra": the phone's own, so not in Settings.
+const newTabOnOpen = $<HTMLInputElement>('#setting-new-tab-on-open');
+void window.terra
+  .invoke<boolean>('terra:new-tab-on-open')
+  .then((on) => (newTabOnOpen.checked = on));
+newTabOnOpen.addEventListener('change', () =>
+  window.terra.send('terra:new-tab-on-open-set', newTabOnOpen.checked),
+);
+
 scrollTabs.addEventListener('change', () =>
   window.browser.updateSettings({ scrollTabs: scrollTabs.checked }),
 );

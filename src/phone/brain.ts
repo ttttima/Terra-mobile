@@ -115,6 +115,44 @@ function saveSettings() {
   data.saveSoon('settings.json', () => settings);
 }
 
+/**
+ * "New tab when Terra opens" (on unless turned off): the phone's own, kept
+ * out of the desktop's Settings, in its own file.
+ */
+let newTabOnOpen: boolean | null = null;
+
+function isNewTabOnOpen() {
+  if (newTabOnOpen === null) {
+    const saved = data.readJson('phone-settings.json') as {
+      newTabOnOpen?: unknown;
+    } | null;
+    newTabOnOpen = saved?.newTabOnOpen !== false;
+  }
+  return newTabOnOpen;
+}
+
+function savePhoneSettings() {
+  data.saveSoon('phone-settings.json', () => ({ newTabOnOpen }));
+}
+
+/**
+ * Opening Terra shows a new tab, with the other tabs kept behind it. An
+ * untouched new tab (or home page) is used again rather than adding one.
+ */
+function showNewTabOnOpen() {
+  if (!isNewTabOnOpen()) return;
+  setSettingsOpen(false);
+  const home = settings.homePage;
+  const blank = tabs.find(
+    (tab) =>
+      !tab.isPrivate &&
+      !tab.canGoBack &&
+      (tab.isNewTab ? !tab.url : Boolean(home) && tab.url === home),
+  );
+  if (blank) activateTab(blank.id);
+  else createTab(settings.homePage || null);
+}
+
 /** --panel for each color mode (index.css), for the app's own background. */
 const THEME_PANELS: Record<Theme, string> = {
   dark: '#191c23',
@@ -1773,6 +1811,9 @@ onHost<{ state: string }>('lifecycle', ({ state }) => {
   }
 });
 
+// Terra came back to the front after being away (MainActivity says when).
+onHost('opened', showNewTabOnOpen);
+
 onHost<string[] | null>('pageColors', (colors) =>
   sendToUi('terra:page-colors', colors),
 );
@@ -1879,6 +1920,10 @@ export const commands: Record<string, (...args: never[]) => unknown> = {
   // frame of the next start): the screen's highest frame rate, or 60.
   'terra:smooth-set': (on: boolean) =>
     post('display.smooth', { on: on === true }),
+  'terra:new-tab-on-open-set': (on: boolean) => {
+    newTabOnOpen = on === true;
+    savePhoneSettings();
+  },
   'terra:tab-menu': (id: number) => showTabMenu(Number(id)),
   'terra:tab-mute': (id: number) => toggleMute(Number(id)),
   'terra:new-private-tab': newPrivateTab,
@@ -1943,6 +1988,7 @@ export const queries: Record<string, (...args: never[]) => unknown> = {
   }),
   'terra:update-check': async () => (await checkForUpdate())?.version ?? null,
   'terra:update-can-reopen': canReopen,
+  'terra:new-tab-on-open': isNewTabOnOpen,
   'terra:smooth-info': () =>
     (inApp
       ? call<{ max: number; supported: boolean; on: boolean }>('display.info')
@@ -1982,8 +2028,9 @@ export function start() {
       if (index === session.active) activeTabId = tabs[tabs.length - 1].id;
     });
   }
-  if (activeTabId !== null) activateTab(activeTabId);
-  else createTab(settings.homePage || null);
+  if (activeTabId === null) createTab(settings.homePage || null);
+  else if (isNewTabOnOpen()) showNewTabOnOpen();
+  else activateTab(activeTabId);
 
   starting = false;
   sendSettings();
