@@ -1,0 +1,81 @@
+# Builds Terra for Android, signs it with the release key and publishes it
+# as a GitHub release, where the app's updater (Updater.kt) finds it.
+#
+# Runs when a version tag (v0.7.9) is pushed, or by hand (Actions → Release
+# → Run workflow), for the version in package.json.
+#
+# The key comes from the repo's secrets, never from the repo itself:
+#   TERRA_KEYSTORE             android/terra-release.jks, as base64
+#   TERRA_KEYSTORE_PROPERTIES  android/keystore.properties, as it is
+# Without them it stops: a new key would make an APK that can't update the
+# installed app.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match package.json ($version)"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.TERRA_KEYSTORE }}
+          PROPERTIES: ${{ secrets.TERRA_KEYSTORE_PROPERTIES }}
+        run: |
+          if [ -z "$KEYSTORE" ] || [ -z "$PROPERTIES" ]; then
+            echo "::error::Add the TERRA_KEYSTORE and TERRA_KEYSTORE_PROPERTIES secrets first (see the top of this file)"
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE" | tr -d '\r\n ' | base64 -d > android/terra-release.jks
+          printf '%s\n' "$PROPERTIES" | tr -d '\r' > android/keystore.properties
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Build
+        run: |
+          npm ci
+          npm run apk
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" "out/Terra-$VERSION.apk" \
+            --title "Terra $VERSION" \
+            --target "$GITHUB_SHA" \
+            --notes-file RELEASE_NOTES.md
+
+      - name: Forget the key
+        if: always()
+        run: rm -f android/terra-release.jks android/keystore.properties
