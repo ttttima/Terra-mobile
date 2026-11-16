@@ -216,6 +216,12 @@ class Host(private val activity: MainActivity) {
                 val url = data.getString("url")
                 network.execute { send("fetch.result", JSONObject().put("id", id).put("text", fetch(url))) }
             }
+            "google.account" -> {
+                val id = data.getInt("id")
+                network.execute {
+                    send("google.result", JSONObject().put("id", id).put("text", googleAccounts() ?: JSONObject.NULL))
+                }
+            }
             "keyboard.show" -> activity.showKeyboard()
             "keyboard.hide" -> activity.hideKeyboard()
             "app.minimize" -> activity.moveTaskToBack(true)
@@ -244,6 +250,38 @@ class Host(private val activity: MainActivity) {
             connection.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
         } else {
             null
+        }
+    } catch (_: Exception) {
+        null
+    }
+
+    /**
+     * Settings > Google account: which accounts Google has signed in, as its
+     * own JSON (brain.ts reads it). Asked only once Google's sign-in cookie
+     * exists, with Terra's own Google cookies, like Chrome asks it.
+     */
+    private fun googleAccounts(): String? = try {
+        val url = "https://accounts.google.com/ListAccounts?gpsia=1&source=ChromiumBrowser&json=standard"
+        val cookies = CookieManager.getInstance()
+        val google = cookies.getCookie("https://www.google.com").orEmpty()
+        if (!Regex("(^|;\\s*)SID=").containsMatchIn(google)) {
+            null
+        } else {
+            val connection = URL(url).openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.doOutput = true
+            connection.setFixedLengthStreamingMode(0)
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            connection.instanceFollowRedirects = false
+            connection.useCaches = false
+            connection.setRequestProperty("Cookie", cookies.getCookie(url).orEmpty())
+            connection.outputStream.close()
+            if (connection.responseCode in 200..299) {
+                connection.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
+            } else {
+                null
+            }
         }
     } catch (_: Exception) {
         null

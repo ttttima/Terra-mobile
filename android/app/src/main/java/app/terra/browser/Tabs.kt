@@ -30,6 +30,7 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.webkit.JavaScriptReplyProxy
 import androidx.webkit.ProfileStore
+import androidx.webkit.UserAgentMetadata
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -77,6 +78,43 @@ class Tabs(private val activity: MainActivity) {
     private val desktopAgent: String by lazy {
         val chrome = Regex("Chrome/[\\d.]+").find(mobileAgent)?.value ?: "Chrome/130.0.0.0"
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) $chrome Safari/537.36"
+    }
+
+    /** "130.0.6723.58", from the engine's own user agent. */
+    private val chromeVersion: String by lazy {
+        Regex("Chrome/([\\d.]+)").find(mobileAgent)?.groupValues?.get(1) ?: "130.0.0.0"
+    }
+
+    /**
+     * Pages see Chrome, like the user agent above already says, so Google's
+     * sign-in takes Terra (Settings → Google account): the brand list says
+     * "Google Chrome" instead of "Android WebView", and no request names
+     * the app (X-Requested-With), which marks an embedded browser.
+     */
+    private fun chromeLike(settings: WebSettings) {
+        try {
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {
+                WebSettingsCompat.setRequestedWithHeaderOriginAllowList(settings, emptySet())
+            }
+            if (WebViewFeature.isFeatureSupported(WebViewFeature.USER_AGENT_METADATA)) {
+                val metadata = WebSettingsCompat.getUserAgentMetadata(settings)
+                val brands = metadata.brandVersionList
+                if (brands.isNotEmpty() && brands.none { it.brand == "Google Chrome" }) {
+                    val chrome = UserAgentMetadata.BrandVersion.Builder()
+                        .setBrand("Google Chrome")
+                        .setMajorVersion(chromeVersion.substringBefore('.'))
+                        .setFullVersion(chromeVersion)
+                        .build()
+                    val list = brands.filter { it.brand != "Android WebView" } + chrome
+                    WebSettingsCompat.setUserAgentMetadata(
+                        settings,
+                        UserAgentMetadata.Builder(metadata).setBrandVersionList(list).build(),
+                    )
+                }
+            }
+        } catch (error: Exception) {
+            android.util.Log.w(MainActivity.TAG, "Brand list unchanged", error)
+        }
     }
 
     fun get(data: JSONObject): Tab? = tabs[data.optInt("id", -1)]
@@ -154,7 +192,13 @@ class Tabs(private val activity: MainActivity) {
         }
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
             WebViewCompat.addDocumentStartJavaScript(view, PageScripts.SCRIPT, setOf("*"))
+            WebViewCompat.addDocumentStartJavaScript(
+                view,
+                PageScripts.googleSignIn(chromeVersion),
+                setOf(GOOGLE_ACCOUNTS),
+            )
         }
+        chromeLike(view.settings)
 
         view.webViewClient = PageClient(tab)
         view.webChromeClient = PageChrome(tab)
@@ -722,6 +766,9 @@ class Tabs(private val activity: MainActivity) {
     }
 
     companion object {
+        /** Google's sign-in page (Settings → Google account). */
+        const val GOOGLE_ACCOUNTS = "https://accounts.google.com"
+
         private const val PRIVATE_PROFILE = "terra-private"
 
         /** How far a page slides between tabs: its whole width. */

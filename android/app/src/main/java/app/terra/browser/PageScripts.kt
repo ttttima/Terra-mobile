@@ -180,4 +180,78 @@ code{color:$muted;word-break:break-all}p{color:$muted;line-height:1.5}
 </style>
 <main><h1>${escape(title)}</h1><p><code>${escape(url)}</code></p><p>${escape(description)}</p></main>"""
     }
+
+    /**
+     * Google sign-in (Settings → Google account), the desktop's
+     * chromeLikeSignIn: Google refuses to sign in browsers it takes for an
+     * embedded one, where window.chrome is empty and the brand list has no
+     * "Google Chrome". Runs on accounts.google.com only, in the page's own
+     * world, so its scripts see what Chrome itself shows them.
+     */
+    fun googleSignIn(version: String) = """
+(() => {
+  const version = ${org.json.JSONObject.quote(version)};
+  const major = version.split('.')[0];
+  const chrome = window.chrome || {};
+  const now = () => Date.now() / 1000;
+  chrome.app = chrome.app || {
+    isInstalled: false,
+    InstallState: { DISABLED: 'disabled', INSTALLED: 'installed', NOT_INSTALLED: 'not_installed' },
+    RunningState: { CANNOT_RUN: 'cannot_run', READY_TO_RUN: 'ready_to_run', RUNNING: 'running' },
+    getDetails: () => null,
+    getIsInstalled: () => false,
+    runningState: () => 'cannot_run',
+  };
+  chrome.csi = chrome.csi || (() => ({
+    startE: Math.round(performance.timeOrigin),
+    onloadT: Math.round(performance.timeOrigin + performance.now()),
+    pageT: performance.now(),
+    tran: 15,
+  }));
+  chrome.loadTimes = chrome.loadTimes || (() => ({
+    requestTime: performance.timeOrigin / 1000,
+    startLoadTime: performance.timeOrigin / 1000,
+    commitLoadTime: now(),
+    finishDocumentLoadTime: now(),
+    finishLoadTime: now(),
+    firstPaintTime: now(),
+    firstPaintAfterLoadTime: 0,
+    navigationType: 'Other',
+    wasFetchedViaSpdy: true,
+    wasNpnNegotiated: true,
+    npnNegotiatedProtocol: 'h2',
+    wasAlternateProtocolAvailable: false,
+    connectionInfo: 'h2',
+  }));
+  window.chrome = chrome;
+
+  const proto = window.NavigatorUAData && window.NavigatorUAData.prototype;
+  if (!proto) return;
+  const add = (list, full) =>
+    list.some((b) => b.brand === 'Google Chrome')
+      ? list
+      : list.filter((b) => b.brand !== 'Android WebView')
+          .concat({ brand: 'Google Chrome', version: full ? version : major });
+  const brands = Object.getOwnPropertyDescriptor(proto, 'brands');
+  if (brands && brands.get) {
+    Object.defineProperty(proto, 'brands', {
+      configurable: true,
+      enumerable: true,
+      get() { return Object.freeze(add(brands.get.call(this), false)); },
+    });
+  }
+  const high = proto.getHighEntropyValues;
+  if (typeof high === 'function') {
+    proto.getHighEntropyValues = function (hints) {
+      return high.call(this, hints).then((values) => {
+        if (Array.isArray(values.brands)) values.brands = add(values.brands, false);
+        if (Array.isArray(values.fullVersionList)) {
+          values.fullVersionList = add(values.fullVersionList, true);
+        }
+        return values;
+      });
+    };
+  }
+})();
+"""
 }

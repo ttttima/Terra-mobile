@@ -16,7 +16,7 @@ same UI and design laid out for a phone, on top of a native Kotlin shell.
     `settings.ts`, `data.ts` (the saved files), `icons.ts`.
 - Shared with the desktop, kept identical to its files: `src/shared.ts`,
   `ui-common.ts`, `ui-pages.ts`, `ui-bookmarks-pop.ts`, `ui-color-panel.ts`,
-  `ui-backdrop.ts`, `suggest-local.ts` and `index.css` (imported by
+  `ui-backdrop.ts`, `ui-google.ts`, `suggest-local.ts` and `index.css` (imported by
   `phone.css`). Change them in both repos, and keep them free of Electron
   and desktop-only DOM.
 - `android/`: the native shell (Kotlin, `app.terra.browser`): one WebView
@@ -32,8 +32,9 @@ same UI and design laid out for a phone, on top of a native Kotlin shell.
 
 Everything the user saves (history, bookmarks, passwords, settings, open
 tabs) stays on the phone in the app's files; never send it anywhere. Only
-GitHub (updates), the ad block list, and opt-in search suggestions use the
-network.
+GitHub (updates), the ad block list, opt-in search suggestions, and asking
+Google which account is signed in (only once you signed in to Google in
+Terra, Settings → Google account) use the network.
 
 `npm run apk` builds `out/Terra-<version>.apk` (needs Android Studio for its
 Java and SDK; `npm run apk -- debug` for a debug build). The first release

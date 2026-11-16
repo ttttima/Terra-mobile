@@ -18,6 +18,7 @@ import {
   type DownloadAction,
   type DownloadInfo,
   type GlassColors,
+  type GoogleAccount,
   type Notice,
   type PageSecurity,
   type PanelPage,
@@ -1479,6 +1480,7 @@ onHost<TabEvent>('tab', (event) => {
       break;
     case 'finished':
       tab.progress = 100;
+      googlePageLoaded(tab);
       break;
     case 'progress':
       tab.progress = event.progress ?? 0;
@@ -1715,6 +1717,77 @@ async function lookForUpdate() {
   });
 }
 
+// ---------------------------------------------------------------- Google account
+
+// Settings → Navigation, like the desktop. Signing in is just Google's own
+// sign-in page in a tab: its cookies stay in Terra, so Google keeps your
+// searches in your account (Web & App Activity). Terra itself sends
+// nothing; it only asks Google which account is signed in, and only once a
+// Google sign-in cookie exists (Host.kt).
+const GOOGLE_SIGN_IN =
+  'https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fwww.google.com%2F';
+const GOOGLE_SIGN_OUT =
+  'https://accounts.google.com/Logout?continue=https%3A%2F%2Fwww.google.com%2F';
+
+let googleRequest = 0;
+const googleWaiters = new Map<number, (text: string | null) => void>();
+
+onHost<{ id: number; text: string | null }>('google.result', ({ id, text }) => {
+  googleWaiters.get(id)?.(text);
+  googleWaiters.delete(id);
+});
+
+function openGooglePage(url: string) {
+  setSettingsOpen(false);
+  createTab(url);
+}
+
+async function googleAccount(): Promise<GoogleAccount | null> {
+  if (!inApp) return null;
+  const id = ++googleRequest;
+  const body = await Promise.race([
+    new Promise<string | null>((resolve) => {
+      googleWaiters.set(id, resolve);
+      post('google.account', { id });
+    }),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
+  ]);
+  googleWaiters.delete(id);
+  if (!body) return null;
+  try {
+    // ["gaia.l.a.r", [["gaia.l.a", 1, name, email, photo, 1, 1, 0, 0,
+    //   valid, id, ..., signedOut], ...]]
+    const [, accounts] = JSON.parse(body.slice(body.indexOf('['))) as [
+      string,
+      unknown[][],
+    ];
+    const account = accounts?.find(
+      (entry) =>
+        typeof entry[3] === 'string' && entry[9] === 1 && entry[14] !== 1,
+    );
+    if (!account) return null;
+    return {
+      email: account[3] as string,
+      name: typeof account[2] === 'string' ? account[2] : '',
+    };
+  } catch {
+    return null;
+  }
+}
+
+let googleTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * A Google page finished loading, so its sign-in may have changed: Android
+ * has no cookie events, so the UI asks again (not for private tabs, whose
+ * cookies are their own).
+ */
+function googlePageLoaded(tab: Tab) {
+  if (tab.isPrivate || !/(^|\.)google\.com$/.test(hostLabel(tab.url))) return;
+  if (googleTimer) clearTimeout(googleTimer);
+  googleTimer = setTimeout(() => sendToUi('terra:google-changed', null), 1000);
+}
+
 // ---------------------------------------------------------------- suggestions
 
 let remoteRequest = 0;
@@ -1936,6 +2009,8 @@ export const commands: Record<string, (...args: never[]) => unknown> = {
   'terra:tab-menu': (id: number) => showTabMenu(Number(id)),
   'terra:tab-mute': (id: number) => toggleMute(Number(id)),
   'terra:new-private-tab': newPrivateTab,
+  'terra:google-connect': () => openGooglePage(GOOGLE_SIGN_IN),
+  'terra:google-disconnect': () => openGooglePage(GOOGLE_SIGN_OUT),
   'terra:close-asleep-tabs': closeAsleepTabs,
   'terra:site-menu': showSiteMenu,
   'terra:main-menu': showMainMenu,
@@ -1999,6 +2074,7 @@ export const queries: Record<string, (...args: never[]) => unknown> = {
   'terra:update-check': async () => (await checkForUpdate())?.version ?? null,
   'terra:update-can-reopen': canReopen,
   'terra:new-tab-on-open': isNewTabOnOpen,
+  'terra:google-account': googleAccount,
   'terra:smooth-info': () =>
     (inApp
       ? call<{ max: number; supported: boolean; on: boolean }>('display.info')

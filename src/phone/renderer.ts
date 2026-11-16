@@ -4,6 +4,7 @@
 import './api';
 import './phone.css';
 import '../ui-backdrop';
+import '../ui-google';
 import '../ui-pages';
 import { closeBookmarksPop } from '../ui-bookmarks-pop';
 import { start } from './brain';

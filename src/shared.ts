@@ -213,6 +213,12 @@ export interface DefaultBrowserState {
   isDefault: boolean;
 }
 
+/** The Google account signed in inside Terra (Settings → Navigation). */
+export interface GoogleAccount {
+  email: string;
+  name: string;
+}
+
 /** Pages that open in the full-window panel next to the settings. */
 export type PanelPage =
   | 'appearance'
