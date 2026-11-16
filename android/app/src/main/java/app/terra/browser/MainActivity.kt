@@ -227,18 +227,48 @@ class MainActivity : Activity() {
     }
 
     /** Dark icons in the status and gesture bars on a light Terra. */
+    /** The theme's own: light bars (dark icons) in the light theme. */
+    private var themeLight = false
+    /** "Adapt to site": the bars' tones from the page, or null for the theme's. */
+    private var statusLight: Boolean? = null
+    private var navLight: Boolean? = null
+
     fun setLightBars(light: Boolean) {
+        themeLight = light
+        applyBarTones()
+    }
+
+    fun setBarTones(status: Boolean?, nav: Boolean?) {
+        statusLight = status
+        navLight = nav
+        applyBarTones()
+    }
+
+    /** Dark icons on light colors, light icons on dark ones. */
+    private fun applyBarTones() {
+        val status = statusLight ?: themeLight
+        val nav = navLight ?: themeLight
         if (Build.VERSION.SDK_INT >= 30) {
             val flags = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
                 WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
-            window.insetsController?.setSystemBarsAppearance(if (light) flags else 0, flags)
+            val wanted = (if (status) WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS else 0) or
+                (if (nav) WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS else 0)
+            window.insetsController?.setSystemBarsAppearance(wanted, flags)
         } else {
             @Suppress("DEPRECATION")
             var visibility = window.decorView.systemUiVisibility
             @Suppress("DEPRECATION")
-            val flags = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
-                View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
-            visibility = if (light) visibility or flags else visibility and flags.inv()
+            visibility = if (status) {
+                visibility or View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+            } else {
+                visibility and View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+            }
+            @Suppress("DEPRECATION")
+            visibility = if (nav) {
+                visibility or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            } else {
+                visibility and View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR.inv()
+            }
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = visibility
         }

@@ -71,6 +71,8 @@ installs over the old version and keeps your tabs, bookmarks and passwords.
   color and a background tint
 - **Liquid glass**: an optional frosted glass background with soft light
   in the colors of your accent or the open website
+- **Adapt to site**: the status bar and the toolbar take the colors of the
+  site you're on, with readable text and icons (Settings → Navigation)
 - **Force dark mode**: makes every website dark
 - **Smooth dividers**: soft gradients between areas instead of hard lines
 - **Protected video and music** (DRM) through Android's Widevine

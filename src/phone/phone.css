@@ -214,6 +214,59 @@ body.fullscreen #update-bar {
   display: none;
 }
 
+/* ============================================================ adapt to site */
+
+/* "Adapt to site" (layout.ts): the page's top color behind the status bar,
+   its bottom color under the toolbar and the bars on it, down to the
+   screen's edge. Their text takes the light or dark theme's colors
+   (data-theme on them), whichever reads on that color. */
+#status-strip {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: -1;
+  height: var(--inset-top);
+  background: transparent;
+  pointer-events: none;
+  transition: background-color var(--duration);
+}
+
+body.adapt-top #status-strip {
+  background: var(--bar-top);
+}
+
+#toolbar,
+#notice-bar,
+#update-bar {
+  transition: background-color var(--duration);
+}
+
+body.adapt-bottom #toolbar,
+body.adapt-bottom #notice-bar:not([hidden]),
+body.adapt-bottom #update-bar:not([hidden]) {
+  border-top-color: transparent;
+  background: var(--bar-bottom);
+  color: var(--text);
+}
+
+/* The toolbar's color reaches down behind the gesture bar. */
+#toolbar::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  height: var(--bottom);
+  background: transparent;
+  pointer-events: none;
+  transition: background-color var(--duration);
+}
+
+body.adapt-bottom #toolbar::after {
+  background: var(--bar-bottom);
+}
+
 /* ============================================================ toolbar */
 
 #toolbar {

@@ -128,6 +128,11 @@ exactly 8px above and below them.
   pictures of the page, every 250 ms while its colors change and 750 ms
   when still, skipped while Terra is in the background. Controls, cards and
   the web page never change.
+- "Adapt to site" (phone-settings.json, on by default): the strip behind
+  the status bar and the toolbar (down to the screen's edge) take the page's
+  top and bottom edge colors from `PageSampler.kt`; `layout.ts` gives
+  those bars the light or dark theme's tokens (`data-theme` on them) and
+  Android's icons the matching tone, whichever reads on that color.
 - Large, soft gradients (anything spanning more than a few dozen pixels,
   like the glass light or the smooth-divider glows) band into rings in
   plain CSS. Draw them in `ui-backdrop.ts`, which computes them in float and

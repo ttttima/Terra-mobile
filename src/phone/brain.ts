@@ -121,19 +121,34 @@ function saveSettings() {
  * out of the desktop's Settings, in its own file.
  */
 let newTabOnOpen: boolean | null = null;
+/**
+ * "Adapt to site" (on unless turned off): the status bar and the toolbar
+ * take the colors of the open page's top and bottom edges.
+ */
+let adaptToSite: boolean | null = null;
+
+function loadPhoneSettings() {
+  if (newTabOnOpen !== null && adaptToSite !== null) return;
+  const saved = data.readJson('phone-settings.json') as {
+    newTabOnOpen?: unknown;
+    adaptToSite?: unknown;
+  } | null;
+  newTabOnOpen = saved?.newTabOnOpen !== false;
+  adaptToSite = saved?.adaptToSite !== false;
+}
 
 function isNewTabOnOpen() {
-  if (newTabOnOpen === null) {
-    const saved = data.readJson('phone-settings.json') as {
-      newTabOnOpen?: unknown;
-    } | null;
-    newTabOnOpen = saved?.newTabOnOpen !== false;
-  }
-  return newTabOnOpen;
+  loadPhoneSettings();
+  return newTabOnOpen === true;
+}
+
+function isAdaptToSite() {
+  loadPhoneSettings();
+  return adaptToSite === true;
 }
 
 function savePhoneSettings() {
-  data.saveSoon('phone-settings.json', () => ({ newTabOnOpen }));
+  data.saveSoon('phone-settings.json', () => ({ newTabOnOpen, adaptToSite }));
 }
 
 /**
@@ -175,8 +190,13 @@ function sendConfig() {
     blockAds: settings.blockAds,
     allowAds: data.adsAllowedOrigins(),
     pageColors: pageColorsWanted(),
-    pageEdges: settings.showDividers && settings.smoothDividers,
+    pageEdges:
+      (settings.showDividers && settings.smoothDividers) || isAdaptToSite(),
+    // The bars follow the page as it scrolls: looked at as often as the
+    // glass colors are.
+    edgesFast: isAdaptToSite(),
   });
+  sendToUi('terra:adapt', isAdaptToSite());
 }
 
 function sendSettings() {
@@ -2006,6 +2026,14 @@ export const commands: Record<string, (...args: never[]) => unknown> = {
     newTabOnOpen = on === true;
     savePhoneSettings();
   },
+  'terra:adapt-to-site-set': (on: boolean) => {
+    loadPhoneSettings();
+    adaptToSite = on === true;
+    savePhoneSettings();
+    sendConfig();
+  },
+  'terra:bars': (tones: { status: string | null; nav: string | null }) =>
+    post('bars', tones),
   'terra:tab-menu': (id: number) => showTabMenu(Number(id)),
   'terra:tab-mute': (id: number) => toggleMute(Number(id)),
   'terra:new-private-tab': newPrivateTab,

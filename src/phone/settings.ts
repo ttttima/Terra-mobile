@@ -204,6 +204,13 @@ smooth.addEventListener('change', () =>
   window.terra.send('terra:smooth-set', smooth.checked),
 );
 
+// "Adapt to site": the phone's own, so not in Settings.
+const adaptToSite = $<HTMLInputElement>('#setting-adapt-to-site');
+window.terra.on<boolean>('terra:adapt', (on) => (adaptToSite.checked = on));
+adaptToSite.addEventListener('change', () =>
+  window.terra.send('terra:adapt-to-site-set', adaptToSite.checked),
+);
+
 // "New tab when you open Terra": the phone's own, so not in Settings.
 const newTabOnOpen = $<HTMLInputElement>('#setting-new-tab-on-open');
 void window.terra

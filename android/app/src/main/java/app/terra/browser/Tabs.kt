@@ -199,6 +199,10 @@ class Tabs(private val activity: MainActivity) {
             )
         }
         chromeLike(view.settings)
+        // Scrolling changes the page's edges: the bars follow quickly.
+        view.setOnScrollChangeListener { _, _, _, _, _ ->
+            if (tab == shown) activity.sampler.moved()
+        }
 
         view.webViewClient = PageClient(tab)
         view.webChromeClient = PageChrome(tab)

@@ -25,6 +25,9 @@
     <!-- Background around the web page; the page shows through its hole. -->
     <div id="chrome-bg" aria-hidden="true"></div>
 
+    <!-- "Adapt to site": the open page's top color behind the status bar. -->
+    <div id="status-strip" aria-hidden="true"></div>
+
     <div id="app">
       <main id="page-area">
         <!-- Soft glow around the web page for "Smooth dividers". -->
@@ -579,6 +582,20 @@
                     <option value="restore">Reopen your tabs</option>
                     <option value="newTab">Open a new tab</option>
                   </select>
+                </label>
+                <label class="setting-row">
+                  <span>
+                    <strong>Adapt to site</strong>
+                    <small
+                      >The status bar and the toolbar take the colors of the
+                      site you're on</small
+                    >
+                  </span>
+                  <input
+                    id="setting-adapt-to-site"
+                    type="checkbox"
+                    class="switch"
+                  />
                 </label>
                 <label class="setting-row">
                   <span>

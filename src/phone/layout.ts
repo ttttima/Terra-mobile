@@ -81,6 +81,7 @@ window.terra.on<boolean>('terra:page-visible', (visible) => {
   pageVisible = visible;
   body.classList.toggle('page-visible', visible);
   update();
+  adapt();
 });
 
 window.terra.on<{ top: string | null; bottom: string | null }>(
@@ -95,8 +96,82 @@ window.terra.on<{ top: string | null; bottom: string | null }>(
       if (isColor(value)) root.style.setProperty(name, value);
       else root.style.removeProperty(name);
     }
+    pageEdges = {
+      top: isColor(edges.top) ? edges.top : null,
+      bottom: isColor(edges.bottom) ? edges.bottom : null,
+    };
+    adapt();
   },
 );
+
+// ---------------------------------------------------------------- adapt to site
+
+// "Adapt to site": the strip behind the status bar takes the color of the
+// page's top edge, and the toolbar (with the bars on it and the gesture
+// area under it) the color of its bottom edge, so the page seems to fill
+// the screen. Their text and icons, and Android's own, turn dark or light
+// to stay readable: the bars borrow the light or dark theme's colors.
+
+let adaptOn = false;
+let pageEdges: { top: string | null; bottom: string | null } = {
+  top: null,
+  bottom: null,
+};
+const strip = document.querySelector<HTMLElement>('#status-strip')!;
+const bottomBars = ['#toolbar', '#notice-bar', '#update-bar'].map(
+  (selector) => document.querySelector<HTMLElement>(selector)!,
+);
+
+/** Light or dark, by how bright the color looks. */
+function toneOf(hex: string): 'light' | 'dark' {
+  const value = parseInt(hex.slice(1), 16);
+  const linear = [value >> 16, (value >> 8) & 255, value & 255].map((c) => {
+    const s = c / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance =
+    0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+  return luminance > 0.4 ? 'light' : 'dark';
+}
+
+let lastBars = '';
+
+function adapt() {
+  const active =
+    adaptOn && pageVisible && !body.classList.contains('fullscreen');
+  const top = active ? pageEdges.top : null;
+  const bottom = active ? pageEdges.bottom : null;
+  const topTone = top ? toneOf(top) : null;
+  const bottomTone = bottom ? toneOf(bottom) : null;
+
+  if (top) root.style.setProperty('--bar-top', top);
+  if (bottom) root.style.setProperty('--bar-bottom', bottom);
+  body.classList.toggle('adapt-top', !!top);
+  body.classList.toggle('adapt-bottom', !!bottom);
+  for (const element of bottomBars) {
+    if (bottomTone) element.dataset.theme = bottomTone;
+    else delete element.dataset.theme;
+  }
+  if (topTone) strip.dataset.theme = topTone;
+  else delete strip.dataset.theme;
+
+  // Android's clock and icons, and its gesture bar: dark on light colors.
+  const bars = { status: topTone, nav: bottomTone };
+  const key = JSON.stringify(bars);
+  if (key === lastBars) return;
+  lastBars = key;
+  window.terra.send('terra:bars', bars);
+}
+
+window.terra.on<boolean>('terra:adapt', (on) => {
+  adaptOn = on;
+  adapt();
+});
+// Fullscreen video hides the bars; coming back, they match again.
+new MutationObserver(adapt).observe(body, {
+  attributes: true,
+  attributeFilter: ['class'],
+});
 
 /** A rounded-rectangle hole in a full-screen shape, as a CSS clip path. */
 function holePath(box: DOMRect, radius: number) {

@@ -1,3 +1,1 @@
-- Terra opens on a new tab every time you open it, with your tabs kept behind it (Settings → Navigation, "New tab when you open Terra", on by default).
-- A trash button next to Bookmarks in the tabs drawer closes the sleeping tabs, like on the desktop. Pinned tabs and the open tab stay.
-- Settings → Navigation → Google account: sign in to Google inside Terra so your searches are saved in your account, like on the desktop.
+- The status bar and the toolbar take the colors of the site you're on, with readable text and icons (Settings → Navigation → Adapt to site, on by default).

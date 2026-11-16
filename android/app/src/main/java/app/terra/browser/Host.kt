@@ -139,7 +139,11 @@ class Host(private val activity: MainActivity) {
             "config" -> {
                 tabs.configure(data)
                 activity.adblock.configure(data.optBoolean("blockAds", true), data.optJSONArray("allowAds"))
-                activity.sampler.configure(data.optBoolean("pageColors"), data.optBoolean("pageEdges"))
+                activity.sampler.configure(
+                    data.optBoolean("pageColors"),
+                    data.optBoolean("pageEdges"),
+                    data.optBoolean("edgesFast"),
+                )
                 activity.applyColors(
                     android.graphics.Color.parseColor(data.optString("panel", "#191c23")),
                     data.optString("theme") == "light",
@@ -165,6 +169,10 @@ class Host(private val activity: MainActivity) {
                 data.optInt("from"),
             )
             "haptic" -> activity.haptic(data.optString("kind"))
+            "bars" -> activity.setBarTones(
+                if (data.isNull("status")) null else data.optString("status") == "light",
+                if (data.isNull("nav")) null else data.optString("nav") == "light",
+            )
             "display.smooth" -> activity.setSmooth(data.optBoolean("on"))
             "tab.back" -> tabs.get(data)?.view?.goBack()
             "tab.forward" -> tabs.get(data)?.view?.goForward()

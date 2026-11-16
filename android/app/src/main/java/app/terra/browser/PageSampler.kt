@@ -29,15 +29,24 @@ class PageSampler(private val activity: MainActivity) {
     private var changedAt = 0L
     private val loop = Runnable { tick() }
 
-    fun configure(colors: Boolean, edges: Boolean) {
+    /** "Adapt to site": the edges are looked at as often as the colors. */
+    private var fastEdges = false
+
+    fun configure(colors: Boolean, edges: Boolean, fast: Boolean = false) {
         val was = wantColors || wantEdges
         wantColors = colors
         wantEdges = edges
+        fastEdges = fast
         if (!colors && lastColors != "none") {
             lastColors = "none"
             activity.host.send("pageColors", null)
         }
         if (!was && (colors || edges)) soon()
+    }
+
+    /** The page is scrolling: keep looking often, without waiting. */
+    fun moved() {
+        changedAt = System.currentTimeMillis()
     }
 
     /** Something changed (a page loaded, another tab): look again soon. */
@@ -54,7 +63,7 @@ class PageSampler(private val activity: MainActivity) {
         sample {
             val changing = System.currentTimeMillis() - changedAt < FAST_FOR_MS
             val delay = when {
-                wantColors -> if (changing) FAST_MS else SLOW_MS
+                wantColors || fastEdges -> if (changing) FAST_MS else SLOW_MS
                 changing -> 600L
                 else -> 2000L
             }
