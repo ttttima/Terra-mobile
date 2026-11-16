@@ -350,6 +350,7 @@ function sendTabs() {
         audible: tab.audible,
         muted: tab.muted,
         isPrivate: tab.isPrivate,
+        asleep: !!tab.lazyUrl,
       }),
     ),
     activeTabId,
@@ -589,6 +590,14 @@ function duplicateTab(id: number) {
   const url = tab ? shownUrl(tab) : '';
   if (!tab || !url) return;
   createTab(url, { nextToActive: true, isPrivate: tab.isPrivate });
+}
+
+/** The drawer's trash button: closes the asleep tabs (not pinned ones). */
+function closeAsleepTabs() {
+  const asleep = tabs.filter(
+    (tab) => tab.lazyUrl && !tab.pinned && tab.id !== activeTabId,
+  );
+  for (const tab of asleep) closeTab(tab.id);
 }
 
 export function newTab() {
@@ -1927,6 +1936,7 @@ export const commands: Record<string, (...args: never[]) => unknown> = {
   'terra:tab-menu': (id: number) => showTabMenu(Number(id)),
   'terra:tab-mute': (id: number) => toggleMute(Number(id)),
   'terra:new-private-tab': newPrivateTab,
+  'terra:close-asleep-tabs': closeAsleepTabs,
   'terra:site-menu': showSiteMenu,
   'terra:main-menu': showMainMenu,
   'terra:menu-pick': (id: number, keepOpen: boolean) =>

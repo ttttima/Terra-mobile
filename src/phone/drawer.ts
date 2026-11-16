@@ -91,6 +91,11 @@ export const isDrawerOpen = () => isOpen;
 
 tabsButton.addEventListener('click', () => openDrawer());
 $('#close-drawer').addEventListener('click', () => closeDrawer());
+// Trash button next to Bookmarks: closes the sleeping tabs.
+const closeAsleep = $<HTMLButtonElement>('#close-asleep-tabs');
+closeAsleep.addEventListener('click', () =>
+  window.terra.send('terra:close-asleep-tabs'),
+);
 $('#new-tab').addEventListener('click', () => {
   closeDrawer();
   window.browser.newTab();
@@ -482,6 +487,9 @@ function leave(element: HTMLLIElement) {
 }
 
 export function renderTabs(state: TabsState) {
+  closeAsleep.disabled = !state.tabs.some(
+    (tab) => tab.asleep && !tab.pinned && tab.id !== state.activeTabId,
+  );
   const ids = new Set(state.tabs.map((tab) => tab.id));
   const staying = [...tabElements.values()].filter((element) =>
     ids.has(Number(element.dataset.id)),

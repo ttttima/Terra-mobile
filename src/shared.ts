@@ -26,6 +26,8 @@ export interface TabInfo {
   muted: boolean;
   /** Private tab: nothing is remembered. */
   isPrivate: boolean;
+  /** Not loaded (asleep, or restored and not opened yet): uses no memory. */
+  asleep: boolean;
 }
 
 export interface TabsState {
